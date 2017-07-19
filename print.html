@@ -75,6 +75,9 @@ about the library we'll build, and the tools we'll use.</p>
 <li><a href="ch01-01-messagepack-rpc.md">chapter 1.1</a> explains what MessagePack-RPC is and what kind of problems is solves</li>
 <li><a href="ch01-02-tokio.md">chapter 1.2</a> gives an overview of the Tokio stack</li>
 </ul>
+<p>To make it easier to follow and to skip chapters, all the code is also
+available on github, in the <a href="https://github.com/little-dude/rmp-rpc-demo">rmp-rpc-demo repository</a>.
+There is a branch per chapter.</p>
 <a class="header" href="print.html#messagepack-rpc" id="messagepack-rpc"><h1>MessagePack-RPC</h1></a>
 <p><code>MessagePack-RPC</code> is a <strong>R</strong>emote <strong>P</strong>rocedure <strong>C</strong>all (RPC) that uses
 messages serialized using the MessagePack format. If you have no idea what that
@@ -252,6 +255,8 @@ whole tokio stack:</p>
 <p>Why an &quot;incomplete&quot; library? We'll see that using only <code>tokio-proto</code>, we cannot
 implement support for notifications. But worry not! this is something we'll fix
 in <a href="ch03-00-second-implementation">part 3</a>.</p>
+<p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-2.1">on github</a></p>
+<hr />
 <a class="header" href="print.html#codec" id="codec"><h1>Codec</h1></a>
 <p>In this chapter, we'll implement a <code>Codec</code> that converts a stream of bytes into
 a stream of a messages.</p>
@@ -1151,6 +1156,8 @@ impl From&lt;decode::Error&gt; for DecodeError {
 }
 
 #}</code></pre></pre>
+<p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-2.2">on github</a></p>
+<hr />
 <a class="header" href="print.html#protocol" id="protocol"><h1>Protocol</h1></a>
 <p>In this chapter, we'll see how to use <code>tokio-proto</code> to implement our
 MessagePack-RPC protocol.</p>
@@ -1523,6 +1530,8 @@ MessagePack-RPC server and client with the <code>Protocol</code> implementation 
 library provides. In this chapter we'll build a simple example server using the
 library as it stands. Then, we'll show how to provide a custom <code>Service</code>
 implementation to make the library more user friendly.</p>
+<p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-2.3.1">on github</a></p>
+<hr />
 <a class="header" href="print.html#first-example" id="first-example"><h1>First example</h1></a>
 <p>In this part, we'll build a simple example server and make a few requests.</p>
 <a class="header" href="print.html#specifications" id="specifications"><h2>Specifications</h2></a>
@@ -2015,6 +2024,8 @@ fn main() {
     let _ = core.run(requests);
 }
 </code></pre></pre>
+<p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-2.3.2">on github</a></p>
+<hr />
 <a class="header" href="print.html#wrapping-the-server" id="wrapping-the-server"><h1>Wrapping the server</h1></a>
 <p>The previous example was quite tedious to write. In this chapter, we'll see
 that we can provide some code in our library, that would make it easier to
@@ -2374,6 +2385,8 @@ impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; NewService for Server&lt;
 }
 
 #}</code></pre></pre>
+<p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-2.3.3">on github</a></p>
+<hr />
 <a class="header" href="print.html#wrapping-the-client" id="wrapping-the-client"><h1>Wrapping the client</h1></a>
 <p>Just like for the server, there is some boilerplate code that can be spared to
 users. This kind of code is un-necessarily verbose for example:</p>
@@ -2520,6 +2533,8 @@ impl Client {
 }
 
 #}</code></pre></pre>
+<p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-2.3.4">on github</a></p>
+<hr />
 <a class="header" href="print.html#updated-example" id="updated-example"><h1>Updated example</h1></a>
 <p>TODO: step by step explanations</p>
 <a class="header" href="print.html#complete-code-5" id="complete-code-5"><h2>Complete code</h2></a>
@@ -2660,6 +2675,8 @@ fn main() {
     let _ = core.run(requests);
 }
 </code></pre></pre>
+<p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-3">on github</a></p>
+<hr />
 <a class="header" href="print.html#second-implementation" id="second-implementation"><h1>Second implementation</h1></a>
 <p>Using the full tokio stack, we built a basic MessagePack-RPC client and server
 able to handle requests and responses, but unable to handle notifications. This
@@ -2798,7 +2815,9 @@ impl Encoder for Codec {
 }
 
 #}</code></pre></pre>
-<a class="header" href="print.html#preliminaries-2" id="preliminaries-2"><h1>Preliminaries</h1></a>
+<p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-3.1">on github</a></p>
+<hr />
+<a class="header" href="print.html#re-implementing-the-server" id="re-implementing-the-server"><h1>Re-implementing the server</h1></a>
 <p>We'll start by implementing the server. So let's empty <code>src/server.rs</code>, and
 import everything we'll need:</p>
 <pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
