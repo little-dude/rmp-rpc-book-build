@@ -1,0 +1,500 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Re-implementing the server - </title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="ch01-00-introduction.html"><strong>1.</strong> Introduction</a></li><li><ul class="section"><li><a href="ch01-01-messagepack-rpc.html"><strong>1.1.</strong> MessagePack-RPC</a></li><li><a href="ch01-02-tokio.html"><strong>1.2.</strong> Tokio</a></li></ul></li><li><a href="ch02-00-first-implementation.html"><strong>2.</strong> First implementation</a></li><li><ul class="section"><li><a href="ch02-01-00-codec.html"><strong>2.1.</strong> Codec</a></li><li><ul class="section"><li><a href="ch02-01-01-codec-code.html"><strong>2.1.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-02-00-protocol.html"><strong>2.2.</strong> Protocol</a></li><li><ul class="section"><li><a href="ch02-02-01-protocol-code.html"><strong>2.2.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-03-00-service.html"><strong>2.3.</strong> Service</a></li><li><ul class="section"><li><a href="ch02-03-01-first-example.html"><strong>2.3.1.</strong> First example</a></li><li><a href="ch02-03-02-wrapping-the-server.html"><strong>2.3.2.</strong> Wrapping the server</a></li><li><a href="ch02-03-03-wrapping-the-client.html"><strong>2.3.3.</strong> Wrapping the client</a></li><li><a href="ch02-03-04-updated-example.html"><strong>2.3.4.</strong> Updated example</a></li></ul></li></ul></li><li><a href="ch03-00-second-implementation.html"><strong>3.</strong> Second implementation</a></li><li><ul class="section"><li><a href="ch03-01-00-reimplementing-the-server.html" class="active"><strong>3.1.</strong> Re-implementing the server</a></li><li><ul class="section"><li><a href="ch03-01-01-reimplementing-the-server-code.html"><strong>3.1.1.</strong> Complete code</a></li></ul></li></ul></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="ch03-01-00-reimplementing-the-server.html#preliminaries" id="preliminaries"><h1>Preliminaries</h1></a>
+<p>We'll start by implementing the server. So let's empty <code>src/server.rs</code>, and
+import everything we'll need:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::io;
+use std::collections::HashMap;
+use std::error::Error;
+use std::net::SocketAddr;
+
+use futures::{Async, Poll, Future, Stream, Sink, BoxFuture};
+use rmpv::Value;
+use tokio_core::net::{TcpStream, TcpListener};
+use tokio_core::reactor::Core;
+use tokio_io::AsyncRead;
+use tokio_io::codec::Framed;
+
+use codec::Codec;
+use message::{Response, Message};
+
+#}</code></pre></pre>
+<p>When working on this library, I kept looking at Tokio's source code. As a
+result, I ended up doing things in a very similar way: our library with provide
+a <code>Service</code> and a <code>ServiceBuilder</code> traits, similar to Tokio's <code>Service</code> and
+<code>NewService</code> traits.</p>
+<p>Let's start with the <code>Service</code> trait, that must be implemented by users who
+want build their MessagePack-RPC server. Unlike Tokio's <code>Service</code> trait, it
+will have two methods instead of one: one to handle requests, and one to handle
+notifications.</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+pub trait Service {
+    type Error: Error;
+    type T: Into&lt;Value&gt;;
+    type E: Into&lt;Value&gt;;
+
+    fn handle_request(&amp;mut self, method: &amp;str, params: &amp;[Value]) -&gt; BoxFuture&lt;Result&lt;Self::T, Self::E&gt;, Self::Error&gt;;
+
+    fn handle_notification(&amp;mut self, method: &amp;str, params: &amp;[Value]) -&gt; BoxFuture&lt;(), Self::Error&gt;;
+}
+
+#}</code></pre></pre>
+<p>Note that these method do not take a <code>Message</code> as argument. This is to avoid
+users this kind of code we wrote in the previous example:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+fn call(&amp;self, msg: Message) -&gt; SomeReturnType {
+    match msg {
+        Message::Request( Request { method, params, .. }) =&gt; {
+            // handle the request
+        }
+        Message::Notification ( Notification { method, params, .. }) =&gt; {
+            // handle the notification
+        }
+        _ =&gt; {
+            // handle this as an error
+        }
+    }
+}
+
+#}</code></pre></pre>
+<p>Also, notice that <code>Service::handle_request()</code> returns a future that produces a
+<code>Result&lt;T, E&gt;</code> where <code>T</code> and <code>E</code> can be converted into values, instead of a
+<code>Result&lt;Value, Value&gt;</code>. This will make implementors life a tiny bit easier, and
+makes the signature nicer.</p>
+<p>For each client, a new <code>Service</code> will be created, so we also a builder trait,
+similar to <code>NewService</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+pub trait ServiceBuilder {
+    type Service: Service + 'static;
+
+    fn build(&amp;self) -&gt; Self::Service;
+}
+
+#}</code></pre></pre>
+<p>Finally, for each client a new future will be spawned. This future shall read
+the messages coming from the client, dispatch them to the <code>Service</code>, and
+forward the responses back to the client. This future is not a function but a
+type that implements the <code>Future</code> trait. We'll call it <code>Server</code>. The server
+owns a service instance, and a TCP stream connected to the client.</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+struct Server&lt;S: Service&gt; {
+    service: S,
+    stream: TcpStream
+    // ...
+}
+
+impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
+    fn new(service: S, tcp_stream: TcpStream) -&gt; Self {
+        Server { service: service, stream: tcp_stream }
+    }
+}
+
+impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
+    type Item = ();
+    type Error = io::Error;
+
+    fn poll(&amp;mut self) -&gt; Poll&lt;Self::Item, Self::Error&gt; {
+        // TODO:
+        //  - read incoming messages from the client
+        //  - dispatch them to the Service
+        //  - send the responses back to the client
+    }
+}
+
+#}</code></pre></pre>
+<p>We'll start by turning the <code>TcpStream</code> into <code>Framed&lt;TcpStream, Codec&gt;</code> where
+<code>Codec</code> is the MessagePack-RPC codec we wrote earlier. That will allow us to
+read and write <code>Message</code> instead of bytes:</p>
+<pre><code>struct Server&lt;S: Service&gt; {
+    service: S,
+    stream: Framed&lt;TcpStream, Codec&gt;
+    // ...
+}
+
+impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
+    fn new(service: S, tcp_stream: TcpStream) -&gt; Self {
+        Server { service: service, stream: tcp_stream.framed(Codec) }
+    }
+}
+</code></pre>
+<p>The biggest task is to implement <code>Future</code>. The first thing it has to do is to
+read the incoming messages and dispatch them to the service:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+
+#fn main() {
+impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
+    type Item = ();
+    type Error = io::Error;
+
+    fn poll(&amp;mut self) -&gt; Poll&lt;Self::Item, Self::Error&gt; {
+        // Read the messages from the client
+        loop {
+            // Poll the stream
+            match self.stream.poll().unwrap() {
+                // We got a message, let's dispatch it to the Service
+                Async::Ready(Some(msg)) =&gt; self.dispatch_message(msg),
+                // The stream finished, probably because the client closed the connection.
+                // There is no need for the server to continue so we return Async::Ready(())
+                // to notify tokio that this future finished
+                Async::Ready(None) =&gt; return Ok(Async::Ready(())),
+                // There is no new message ready to be read.
+                // Let's just break out of this loop
+                Async::NotReady =&gt; break,
+            }
+        }
+
+        // TODO: send back the responses that the service procuced, if any
+
+        // Important! Notify tokio that this future is not ready yet. By
+        // returning Async::NotReady we tell tokio to re-schedule this future for
+        // polling.
+        Ok(Async::NotReady)
+    }
+}
+
+#}</code></pre></pre>
+<p>It's important to understand that when spawning a <code>Server</code> instance on a tokio
+event loop, tokio will keep calling <code>poll()</code> as long as it return
+<code>Ok(Async::NotReady)</code>. In other words, the server runs until <code>poll()</code> returns
+an error or <code>Ok(Async::Ready(()))</code>.</p>
+<p>Let's take a closer look at the <code>Server::dispatch_message()</code> method:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
+
+    // ...
+
+    fn dispatch_message(&amp;mut self, msg: Message) {
+        match msg {
+            Message::Request(request) =&gt; {
+                let method = request.method.as_str();
+                let params = request.params;
+                let response = self.service.handle_request(method, &amp;params);
+            }
+            Message::Notification(notification) =&gt; {
+                let method = notification.method.as_str();
+                let params = notification.params;
+                let outcome = self.service.handle_notification(method, &amp;params);
+            }
+            // Let's just silently ignore responses.
+            Message::Response(_) =&gt; return;
+        }
+    }
+}
+
+#}</code></pre></pre>
+<p>Pretty straightforward except that... we need to keep track of the futures
+returned by <code>handle_request()</code> and <code>handle_notfication()</code> of course. Since
+responses have an ID, it seems natural to use a hashmap and use the ID as a
+key. For the notifications, a vector is enough:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+struct Server&lt;S: Service&gt; {
+    service: S,
+    stream: Framed&lt;TcpStream, Codec&gt;,
+    request_tasks: HashMap&lt;u32, BoxFuture&lt;Result&lt;S::T, S::E&gt;, S::Error&gt;&gt;,
+    notification_tasks: Vec&lt;BoxFuture&lt;(), S::Error&gt;&gt;,
+}
+
+impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
+    fn new(service: S, tcp_stream: TcpStream) -&gt; Self {
+        Server {
+            service: service,
+            stream: tcp_stream.framed(Codec),
+            request_tasks: HashMap::new(),
+            notification_tasks: Vec::new(),
+        }
+    }
+
+    fn dispatch_message(&amp;mut self, msg: Message) {
+        match msg {
+            Message::Request(request) =&gt; {
+                let method = request.method.as_str();
+                let params = request.params;
+                let response = self.service.handle_request(method, &amp;params);
+                // store the future, so that we can poll it until it completes
+                self.request_tasks.insert(request.id, response);
+            }
+            Message::Notification(notification) =&gt; {
+                let method = notification.method.as_str();
+                let params = notification.params;
+                let outcome = self.service.handle_notification(method, &amp;params);
+                // store the future, so that we can poll it until it completes
+                self.notification_tasks.push(outcome);
+            }
+            Message::Response(_) =&gt; return,
+        }
+    }
+}
+
+#}</code></pre></pre>
+<p>It remains to poll the futures returned by our service until they complete.
+Futures returned by <code>handle_request()</code> return a <code>Response</code> that needs to be
+sent back the client. Futures returned by <code>handle_notification()</code> don't return
+anything, but it's important to poll them as well, to run them to completion.</p>
+<p>We'll create two separate methods to poll these futures:
+<code>Server::process_requests()</code> and <code>Server::process_notifications()</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+
+#fn main() {
+impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
+
+    // ...
+
+    fn process_notifications(&amp;mut self) {
+        // keep track of the futures that finished
+        let mut done = vec![];
+
+        for (idx, task) in self.notification_tasks.iter_mut().enumerate() {
+            match task.poll().unwrap() {
+                // the future finished
+                Async::Ready(_) =&gt; done.push(idx),
+                // the future did not finished yet
+                Async::NotReady =&gt; continue,
+            }
+        }
+
+        // stop tracking the futures that finished
+        for idx in done.iter().rev() { self.notification_tasks.remove(*idx); }
+    }
+
+    fn process_requests(&amp;mut self) {
+        // keep track of the futures that finished
+        let mut done = vec![];
+
+        for (id, task) in &amp;mut self.request_tasks {
+            match task.poll().unwrap() {
+                // this future finished. we send the response back to the client
+                Async::Ready(response) =&gt; {
+                    let msg = Message::Response(Response {
+                        id: *id,
+                        result: response.map(|v| v.into()).map_err(|e| e.into()),
+                    });
+                    done.push(*id);
+
+                    // send the response back to the client
+                    if !self.stream.start_send(msg).unwrap().is_ready() {
+                        panic!(&quot;the sink is full&quot;)
+                    }
+                }
+                // the future did not finished yet. We ignore it.
+                Async::NotReady =&gt; continue,
+            }
+        }
+
+        // stop tracking the futures that finished
+        for idx in done.iter_mut().rev() {
+            let _ = self.request_tasks.remove(idx);
+        }
+    }
+
+#}</code></pre></pre>
+<p>I think the comments make the code clear enough. Of course we need to call these methods in <code>poll()</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+
+#fn main() {
+impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
+    type Item = ();
+    type Error = io::Error;
+
+    fn poll(&amp;mut self) -&gt; Poll&lt;Self::Item, Self::Error&gt; {
+        loop {
+            match self.stream.poll().unwrap() {
+                Async::Ready(Some(msg)) =&gt; self.handle_msg(msg),
+                Async::Ready(None) =&gt; {
+                    return Ok(Async::Ready(()));
+                }
+                Async::NotReady =&gt; break,
+            }
+        }
+        self.process_notifications();
+        self.process_requests();
+        Ok(Async::NotReady)
+    }
+}
+
+#}</code></pre></pre>
+<p>We are almost done, but one subtility remains. If you noticed, when sending the
+response, we use <code>stream.start_send()</code>. The
+<a href="https://docs.rs/futures/0.1/futures/sink/trait.Sink.html#tymethod.start_send">documentation</a>
+explains that this is not enough to actually send the response. Internally, for
+performance reasons, the <code>Sink</code> may buffer the messages before sending them.
+With only <code>start_send()</code> we cannot be sure that the data wether has actually
+being written into the TCP socket, or wether the operation is pending.</p>
+<p>To make sure the data is sent, we need to tell the sink to flush its buffers
+with
+<a href="https://docs.rs/futures/0.1/futures/sink/trait.Sink.html#tymethod.poll_complete"><code>Sink::poll_complete()</code></a>.
+We could do this for each message, right after <code>start_send()</code>, but this would
+kind of defeat the purpose of buffering.  Instead, we'll flush after we
+processed all the requests:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
+    type Item = ();
+    type Error = io::Error;
+
+    fn poll(&amp;mut self) -&gt; Poll&lt;Self::Item, Self::Error&gt; {
+        loop {
+            match self.stream.poll().unwrap() {
+                Async::Ready(Some(msg)) =&gt; self.handle_msg(msg),
+                Async::Ready(None) =&gt; {
+                    return Ok(Async::Ready(()));
+                }
+                Async::NotReady =&gt; break,
+            }
+        }
+        self.process_notifications();
+        self.process_requests();
+        self.stream.poll_complete().unwrap();
+        Ok(Async::NotReady)
+    }
+}
+
+#}</code></pre></pre>
+<p>Finally, we could try to make users life easier by providing a function to run
+a server on a Tokio event loop. It's not mandatory, but it will also show how
+the code we just wrote can be used:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+pub fn serve&lt;B: ServiceBuilder&gt;(address: &amp;SocketAddr, service_builder: B) {
+    let mut core = Core::new().unwrap();
+    let handle = core.handle();
+    let listener = TcpListener::bind(address, &amp;handle).unwrap();
+    core.run(listener.incoming().for_each(|(stream, _address)| {
+        let service = service_builder.build();
+        let server = Server::new(service, stream);
+        handle.spawn(server.map_err(|_| ()));
+        Ok(())
+    })).unwrap()
+}
+
+#}</code></pre></pre>
+<p>A TCP listener creates a new service for each client that connects, and spawn a
+new <code>Server</code> instance on the event loop. Once the server is spawned, Tokio
+start's calling <code>poll()</code> and the server. This is kind of confusing, because our
+MessagePack-RPC server actually works by spawning multiple <code>Server</code> (one per
+client).</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="ch03-00-second-implementation.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="ch03-01-01-reimplementing-the-server-code.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="ch03-00-second-implementation.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="ch03-01-01-reimplementing-the-server-code.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

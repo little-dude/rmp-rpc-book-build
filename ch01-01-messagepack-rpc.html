@@ -1,0 +1,220 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>MessagePack-RPC - </title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="ch01-00-introduction.html"><strong>1.</strong> Introduction</a></li><li><ul class="section"><li><a href="ch01-01-messagepack-rpc.html" class="active"><strong>1.1.</strong> MessagePack-RPC</a></li><li><a href="ch01-02-tokio.html"><strong>1.2.</strong> Tokio</a></li></ul></li><li><a href="ch02-00-first-implementation.html"><strong>2.</strong> First implementation</a></li><li><ul class="section"><li><a href="ch02-01-00-codec.html"><strong>2.1.</strong> Codec</a></li><li><ul class="section"><li><a href="ch02-01-01-codec-code.html"><strong>2.1.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-02-00-protocol.html"><strong>2.2.</strong> Protocol</a></li><li><ul class="section"><li><a href="ch02-02-01-protocol-code.html"><strong>2.2.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-03-00-service.html"><strong>2.3.</strong> Service</a></li><li><ul class="section"><li><a href="ch02-03-01-first-example.html"><strong>2.3.1.</strong> First example</a></li><li><a href="ch02-03-02-wrapping-the-server.html"><strong>2.3.2.</strong> Wrapping the server</a></li><li><a href="ch02-03-03-wrapping-the-client.html"><strong>2.3.3.</strong> Wrapping the client</a></li><li><a href="ch02-03-04-updated-example.html"><strong>2.3.4.</strong> Updated example</a></li></ul></li></ul></li><li><a href="ch03-00-second-implementation.html"><strong>3.</strong> Second implementation</a></li><li><ul class="section"><li><a href="ch03-01-00-reimplementing-the-server.html"><strong>3.1.</strong> Re-implementing the server</a></li><li><ul class="section"><li><a href="ch03-01-01-reimplementing-the-server-code.html"><strong>3.1.1.</strong> Complete code</a></li></ul></li></ul></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="ch01-01-messagepack-rpc.html#messagepack-rpc" id="messagepack-rpc"><h1>MessagePack-RPC</h1></a>
+<p><code>MessagePack-RPC</code> is a <strong>R</strong>emote <strong>P</strong>rocedure <strong>C</strong>all (RPC) that uses
+messages serialized using the MessagePack format. If you have no idea what that
+means, read on!</p>
+<a class="header" href="ch01-01-messagepack-rpc.html#remote-procedure-call" id="remote-procedure-call"><h2>Remote Procedure Call</h2></a>
+<p>RPC stands for Remote Procedure Call. An RPC protocol defines a way for
+processes to communicate. One process (we'll call it the <em>server</em>) opens an
+input channel (usually a socket, but it can also be a stream like <code>stdin</code> for
+example), and waits for commands. Then other processes (we'll call them
+<em>clients</em>) can start sending messages to the server. The RPC protocol defines
+defines the format of the messages, as well as how they are exchanged. The
+<a href="https://en.wikipedia.org/wiki/Remote_procedure_call">wikipedia article</a> gives
+more details.</p>
+<a class="header" href="ch01-01-messagepack-rpc.html#example-json-rpc" id="example-json-rpc"><h2>Example JSON-RPC</h2></a>
+<p>One widely used and simple RPC protocol is
+<a href="https://en.wikipedia.org/wiki/JSON-RPC">JSON-RPC</a>. Clients and server exchange
+JSON messages. Clients can send two types of messages: <em>requests</em> and
+<em>notifications</em>. A server can only send one type of message: <code>reponses</code>. When a
+server receives a <em>request</em>, it <strong>must</strong> answer with a <em>response</em>. When it
+receives a <em>notification</em> it <strong>must not</strong> answer.</p>
+<p>A <em>request</em> message is a JSON string that looks like this:</p>
+<pre><code>{
+    &quot;jsonrpc&quot;: &quot;2.0&quot;,
+    &quot;id&quot;: 3,
+    &quot;method&quot;: &quot;add&quot;,
+    &quot;params&quot;: [2, 2],
+}
+</code></pre>
+<ul>
+<li>the <code>jsonrpc</code> attribute is the version of the protocol.</li>
+<li>the <code>id</code> attribute identify a request. Each request has a different ID.</li>
+<li>the <code>method</code> is the name of the command sent to the server.</li>
+<li><code>params</code> can be an arbitrary JSON value. Here, it is a simple list of integers.</li>
+</ul>
+<p>This requests is basically telling the server to <code>add</code> <code>2</code> and <code>2</code>. Here is a
+potential response:</p>
+<pre><code>{
+    &quot;jsonrpc&quot;: &quot;2.0&quot;,
+    &quot;id&quot;: 3,
+    &quot;result&quot;: &quot;4&quot;,
+}
+</code></pre>
+<ul>
+<li>the <code>id</code> is the same than the request's <code>id</code>. If the client sends multiple
+requests, it can identify which response is for which request. We say that
+the protocol is <strong>multiplexed</strong>.</li>
+<li>the <code>result</code> can be an arbitrary JSON value. Here, it is an integer.</li>
+</ul>
+<p>A <em>notification</em> is similar to a request, but since no response is expected by
+the clients, it does not have an ID:</p>
+<pre><code>{
+    &quot;jsonrpc&quot;: &quot;2.0&quot;,
+    &quot;method&quot;: &quot;save&quot;,
+    &quot;params&quot;: &quot;/home/me/a_file.txt&quot;,
+}
+</code></pre>
+<p>Now that we have an idea of the concept of RPC, let's talk about MessagePack.</p>
+<a class="header" href="ch01-01-messagepack-rpc.html#messagepack" id="messagepack"><h2>MessagePack</h2></a>
+<p>MessagePack is a serialization format.</p>
+<p>A serialization format defines a representation of data as a stream of
+bytes. JSON is a serialization format, but there are other formats like
+<a href="https://github.com/google/protobuf">protobuf</a> or
+<a href="http://msgpack.org/">MessagePack</a>.</p>
+<p>Each programming language has its own representation of data and the power of
+serialization formats is that they provide a common representation. For
+instance a list of integer will is represented as <code>&quot;[1, 2, 3]&quot;</code> in JSON. But
+both Rust and Python are able to deserialize this list and have their own
+representation of it:</p>
+<pre><code>Rust                    JSON                  Python
+          serialize             deserialize
+Vec&lt;u32&gt; -----------&gt; &quot;[1,2,3]&quot; -----------&gt; [1, 2, 3]
+</code></pre>
+<p>In the context of Rust we can say that a serialization format defines how to
+represent a <code>struct</code> as a stream of bytes.  This is what
+<a href="http://serde.rs/">serde</a> does.</p>
+<p>The specificity of <strong>MessagePack</strong> is that it's similar to JSON, but is more
+compact, which makes it faster and lighter to send over the network for
+example. To quote <a href="msgpack.org">msgpack.org</a>, &quot;it's like JSON, but fast and
+small&quot;. You can find the <a href="https://github.com/msgpack/msgpack/blob/master/spec.md">specifications on
+github</a>. In the Rust
+ecosystem, the main implementation of MessagePack is
+<a href="https://github.com/3Hren/msgpack-rust"><code>rmp</code></a> (which stands for Rust
+MessagePack).</p>
+<a class="header" href="ch01-01-messagepack-rpc.html#messagepack-rpc-1" id="messagepack-rpc-1"><h2>MessagePack-RPC</h2></a>
+<p><strong>MessagePack-RPC</strong> is an RPC protocol that uses the MessagePack to exchange
+messages. It is very similar to the JSON-RPC protocol described above:</p>
+<ul>
+<li>it defines three types of messages: <em>notifications</em>, <em>requests</em>, and <em>responses</em></li>
+<li>requests and responses carry an ID</li>
+<li>requests must be answered with a response that carries the same ID</li>
+<li>notifications must not be answered</li>
+</ul>
+<p>The main differences with JSON-RPC are:</p>
+<ul>
+<li>it uses MessagePack instead of JSON</li>
+<li>messages don't have a &quot;version&quot; field</li>
+<li>message have a &quot;type&quot; field that tell wether they are notifications, requests or responses.</li>
+</ul>
+<p>There are other minor differences but we don't intend to give an exhaustive
+list in this document.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="ch01-00-introduction.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="ch01-02-tokio.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="ch01-00-introduction.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="ch01-02-tokio.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

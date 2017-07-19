@@ -1,0 +1,266 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Wrapping the client - </title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="ch01-00-introduction.html"><strong>1.</strong> Introduction</a></li><li><ul class="section"><li><a href="ch01-01-messagepack-rpc.html"><strong>1.1.</strong> MessagePack-RPC</a></li><li><a href="ch01-02-tokio.html"><strong>1.2.</strong> Tokio</a></li></ul></li><li><a href="ch02-00-first-implementation.html"><strong>2.</strong> First implementation</a></li><li><ul class="section"><li><a href="ch02-01-00-codec.html"><strong>2.1.</strong> Codec</a></li><li><ul class="section"><li><a href="ch02-01-01-codec-code.html"><strong>2.1.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-02-00-protocol.html"><strong>2.2.</strong> Protocol</a></li><li><ul class="section"><li><a href="ch02-02-01-protocol-code.html"><strong>2.2.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-03-00-service.html"><strong>2.3.</strong> Service</a></li><li><ul class="section"><li><a href="ch02-03-01-first-example.html"><strong>2.3.1.</strong> First example</a></li><li><a href="ch02-03-02-wrapping-the-server.html"><strong>2.3.2.</strong> Wrapping the server</a></li><li><a href="ch02-03-03-wrapping-the-client.html" class="active"><strong>2.3.3.</strong> Wrapping the client</a></li><li><a href="ch02-03-04-updated-example.html"><strong>2.3.4.</strong> Updated example</a></li></ul></li></ul></li><li><a href="ch03-00-second-implementation.html"><strong>3.</strong> Second implementation</a></li><li><ul class="section"><li><a href="ch03-01-00-reimplementing-the-server.html"><strong>3.1.</strong> Re-implementing the server</a></li><li><ul class="section"><li><a href="ch03-01-01-reimplementing-the-server-code.html"><strong>3.1.1.</strong> Complete code</a></li></ul></li></ul></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="ch02-03-03-wrapping-the-client.html#wrapping-the-client" id="wrapping-the-client"><h1>Wrapping the client</h1></a>
+<p>Just like for the server, there is some boilerplate code that can be spared to
+users. This kind of code is un-necessarily verbose for example:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+let req = Message::Request(Request {
+    method: &quot;add&quot;.into(),
+    id: 0,
+    params: vec![1.into(), 2.into()],
+});
+client.call(req).and_then(|response| {
+    // ...
+});
+
+#}</code></pre></pre>
+<p>We should not have to build a full <code>Message</code> in the first place. To send a
+request, users should just have to call a method that takes two arguments: the
+method, and the parameters. Let's build a <code>Client</code> type with such a method:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/client.rs
+
+use std::io;
+use futures::{Future, BoxFuture};
+use rmpv::Value;
+
+pub struct Client;
+
+pub type Response = Box&lt;Future&lt;Item = Result&lt;Value, Value&gt;, Error = io::Error&gt;&gt;;
+
+impl Client {
+    pub fn request(&amp;self, method: &amp;str, params: Vec&lt;Value&gt;) -&gt; Response {
+        // TODO
+    }
+}
+
+#}</code></pre></pre>
+<p>This is a bit naive because as it stands, <code>Client</code> is an empty type. Instead,
+it should wrap a type that implements <code>Service</code> and can send requests. It turns
+out that tokio provides such a type:
+<a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/multiplex/struct.ClientService.html"><code>tokio_proto::multiplex::ClientService</code></a>.
+All we have to do is wrap it and use it to send the requests:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/client.rs
+
+// ...
+use tokio_proto::multiplex::ClientService;
+use message::{Message, Request};
+
+pub struct Client(ClientService&lt;TcpStream, Protocol&gt;);
+
+pub type Response = Box&lt;Future&lt;Item = Result&lt;Value, Value&gt;, Error = io::Error&gt;&gt;;
+
+impl Client {
+    pub fn request(&amp;self, method: &amp;str, params: Vec&lt;Value&gt;) -&gt; Response {
+        let req = Message::Request(Request {
+            // we can set this to 0 because under the hood it's handle by tokio at the
+            // protocol/codec level
+            id: 0,
+            method: method.to_string(),
+            params: params,
+        });
+        let resp = self.0.call(req).and_then(|resp| {
+            match resp {
+                Message::Response(response) =&gt; Ok(response.result),
+                _ =&gt; panic!(&quot;Response is not a Message::Response&quot;);
+            }
+        });
+        Box::new(resp) as Response
+    }
+}
+
+#}</code></pre></pre>
+<p>It is easy to adapt the example code to add a <code>connect()</code> method as well:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/client.rs
+
+// ...
+use tokio_proto::TcpClient;
+
+// ...
+
+impl Client {
+    pub fn connect(addr: &amp;SocketAddr, handle: &amp;Handle) -&gt; Box&lt;Future&lt;Item = Client, Error = io::Error&gt;&gt; {
+        let ret = TcpClient::new(Protocol)
+            .connect(addr, handle)
+            .map(Client);
+        Box::new(ret)
+    }
+
+    // ...
+}
+
+#}</code></pre></pre>
+<a class="header" href="ch02-03-03-wrapping-the-client.html#complete-code" id="complete-code"><h1>Complete code</h1></a>
+<a class="header" href="ch02-03-03-wrapping-the-client.html#clientrs" id="clientrs"><h2>client.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::io;
+use std::net::SocketAddr;
+
+use futures::Future;
+use tokio_core::net::TcpStream;
+use tokio_core::reactor::Handle;
+use tokio_proto::multiplex::ClientService;
+use tokio_proto::TcpClient;
+use tokio_service::Service;
+use rmpv::Value;
+
+use message::{Message, Request};
+use protocol::Protocol;
+
+
+pub struct Client(ClientService&lt;TcpStream, Protocol&gt;);
+
+pub type Response = Box&lt;Future&lt;Item = Result&lt;Value, Value&gt;, Error = io::Error&gt;&gt;;
+
+impl Client {
+    pub fn connect(addr: &amp;SocketAddr, handle: &amp;Handle) -&gt; Box&lt;Future&lt;Item = Client, Error = io::Error&gt;&gt; {
+        let ret = TcpClient::new(Protocol)
+            .connect(addr, handle)
+            .map(Client);
+        Box::new(ret)
+    }
+
+    pub fn request(&amp;self, method: &amp;str, params: Vec&lt;Value&gt;) -&gt; Response {
+        let req = Message::Request(Request {
+            // we can set this to 0 because under the hood it's handle by tokio at the
+            // protocol/codec level
+            id: 0,
+            method: method.to_string(),
+            params: params,
+        });
+        let resp = self.0.call(req).and_then(|resp| {
+            match resp {
+                Message::Response(response) =&gt; Ok(response.result),
+                _ =&gt; panic!(&quot;Response is not a Message::Response&quot;),
+            }
+        });
+        Box::new(resp) as Response
+    }
+}
+
+#}</code></pre></pre>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="ch02-03-02-wrapping-the-server.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="ch02-03-04-updated-example.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="ch02-03-02-wrapping-the-server.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="ch02-03-04-updated-example.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

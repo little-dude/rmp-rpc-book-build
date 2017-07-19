@@ -1,0 +1,259 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Complete code - </title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="ch01-00-introduction.html"><strong>1.</strong> Introduction</a></li><li><ul class="section"><li><a href="ch01-01-messagepack-rpc.html"><strong>1.1.</strong> MessagePack-RPC</a></li><li><a href="ch01-02-tokio.html"><strong>1.2.</strong> Tokio</a></li></ul></li><li><a href="ch02-00-first-implementation.html"><strong>2.</strong> First implementation</a></li><li><ul class="section"><li><a href="ch02-01-00-codec.html"><strong>2.1.</strong> Codec</a></li><li><ul class="section"><li><a href="ch02-01-01-codec-code.html"><strong>2.1.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-02-00-protocol.html"><strong>2.2.</strong> Protocol</a></li><li><ul class="section"><li><a href="ch02-02-01-protocol-code.html"><strong>2.2.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-03-00-service.html"><strong>2.3.</strong> Service</a></li><li><ul class="section"><li><a href="ch02-03-01-first-example.html"><strong>2.3.1.</strong> First example</a></li><li><a href="ch02-03-02-wrapping-the-server.html"><strong>2.3.2.</strong> Wrapping the server</a></li><li><a href="ch02-03-03-wrapping-the-client.html"><strong>2.3.3.</strong> Wrapping the client</a></li><li><a href="ch02-03-04-updated-example.html"><strong>2.3.4.</strong> Updated example</a></li></ul></li></ul></li><li><a href="ch03-00-second-implementation.html"><strong>3.</strong> Second implementation</a></li><li><ul class="section"><li><a href="ch03-01-00-reimplementing-the-server.html"><strong>3.1.</strong> Re-implementing the server</a></li><li><ul class="section"><li><a href="ch03-01-01-reimplementing-the-server-code.html" class="active"><strong>3.1.1.</strong> Complete code</a></li></ul></li></ul></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="ch03-01-01-reimplementing-the-server-code.html#complete-code" id="complete-code"><h1>Complete code</h1></a>
+<a class="header" href="ch03-01-01-reimplementing-the-server-code.html#serverrs" id="serverrs"><h2>server.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::io;
+use std::collections::HashMap;
+use std::error::Error;
+use std::net::SocketAddr;
+
+use codec::Codec;
+use message::{Response, Message};
+
+use futures::{Async, Poll, Future, Stream, Sink, BoxFuture};
+use rmpv::Value;
+use tokio_core::net::{TcpStream, TcpListener};
+use tokio_core::reactor::Core;
+use tokio_io::AsyncRead;
+use tokio_io::codec::Framed;
+
+pub trait Service {
+    type Error: Error;
+    type T: Into&lt;Value&gt;;
+    type E: Into&lt;Value&gt;;
+
+    fn handle_request(
+        &amp;mut self,
+        method: &amp;str,
+        params: &amp;[Value],
+    ) -&gt; BoxFuture&lt;Result&lt;Self::T, Self::E&gt;, Self::Error&gt;;
+
+    fn handle_notification(&amp;mut self, method: &amp;str, params: &amp;[Value]) -&gt; BoxFuture&lt;(), Self::Error&gt;;
+}
+
+pub trait ServiceBuilder {
+    type Service: Service + 'static;
+
+    fn build(&amp;self) -&gt; Self::Service;
+}
+
+struct Server&lt;S: Service&gt; {
+    service: S,
+    stream: Framed&lt;TcpStream, Codec&gt;,
+    request_tasks: HashMap&lt;u32, BoxFuture&lt;Result&lt;S::T, S::E&gt;, S::Error&gt;&gt;,
+    notification_tasks: Vec&lt;BoxFuture&lt;(), S::Error&gt;&gt;,
+}
+
+impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
+    fn new(service: S, tcp_stream: TcpStream) -&gt; Self {
+        Server {
+            service: service,
+            stream: tcp_stream.framed(Codec),
+            request_tasks: HashMap::new(),
+            notification_tasks: Vec::new(),
+        }
+    }
+
+    fn dispatch_message(&amp;mut self, msg: Message) {
+        match msg {
+            Message::Request(request) =&gt; {
+                let method = request.method.as_str();
+                let params = request.params;
+                let response = self.service.handle_request(method, &amp;params);
+                self.request_tasks.insert(request.id, response);
+            }
+            Message::Notification(notification) =&gt; {
+                let method = notification.method.as_str();
+                let params = notification.params;
+                let outcome = self.service.handle_notification(method, &amp;params);
+                self.notification_tasks.push(outcome);
+            }
+            Message::Response(_) =&gt; {
+                return;
+            }
+        }
+    }
+
+    fn process_notifications(&amp;mut self) {
+        let mut done = vec![];
+        for (idx, task) in self.notification_tasks.iter_mut().enumerate() {
+            match task.poll().unwrap() {
+                Async::Ready(_) =&gt; done.push(idx),
+                Async::NotReady =&gt; continue,
+            }
+        }
+        for idx in done.iter().rev() {
+            self.notification_tasks.remove(*idx);
+        }
+    }
+
+    fn process_requests(&amp;mut self) {
+        let mut done = vec![];
+        for (id, task) in &amp;mut self.request_tasks {
+            match task.poll().unwrap() {
+                Async::Ready(response) =&gt; {
+                    let msg = Message::Response(Response {
+                        id: *id,
+                        result: response.map(|v| v.into()).map_err(|e| e.into()),
+                    });
+                    done.push(*id);
+                    if !self.stream.start_send(msg).unwrap().is_ready() {
+                        panic!(&quot;the sink is full&quot;)
+                    }
+                }
+                Async::NotReady =&gt; continue,
+            }
+        }
+
+        for idx in done.iter_mut().rev() {
+            let _ = self.request_tasks.remove(idx);
+        }
+    }
+}
+
+impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
+    type Item = ();
+    type Error = io::Error;
+
+    fn poll(&amp;mut self) -&gt; Poll&lt;Self::Item, Self::Error&gt; {
+        loop {
+            match self.stream.poll().unwrap() {
+                Async::Ready(Some(msg)) =&gt; self.dispatch_message(msg),
+                Async::Ready(None) =&gt; {
+                    return Ok(Async::Ready(()));
+                }
+                Async::NotReady =&gt; break,
+            }
+        }
+        self.process_notifications();
+        self.process_requests();
+        self.stream.poll_complete().unwrap();
+        Ok(Async::NotReady)
+    }
+}
+
+pub fn serve&lt;B: ServiceBuilder&gt;(address: &amp;SocketAddr, service_builder: B) {
+    let mut core = Core::new().unwrap();
+    let handle = core.handle();
+    let listener = TcpListener::bind(address, &amp;handle).unwrap();
+    core.run(listener.incoming().for_each(|(stream, _address)| {
+        let service = service_builder.build();
+        let server = Server::new(service, stream);
+        handle.spawn(server.map_err(|_| ()));
+        Ok(())
+    })).unwrap()
+}
+
+#}</code></pre></pre>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="ch03-01-00-reimplementing-the-server.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+
+            </div>
+
+            
+                <a href="ch03-01-00-reimplementing-the-server.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

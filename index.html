@@ -1,0 +1,118 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Introduction - </title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="ch01-00-introduction.html" class="active"><strong>1.</strong> Introduction</a></li><li><ul class="section"><li><a href="ch01-01-messagepack-rpc.html"><strong>1.1.</strong> MessagePack-RPC</a></li><li><a href="ch01-02-tokio.html"><strong>1.2.</strong> Tokio</a></li></ul></li><li><a href="ch02-00-first-implementation.html"><strong>2.</strong> First implementation</a></li><li><ul class="section"><li><a href="ch02-01-00-codec.html"><strong>2.1.</strong> Codec</a></li><li><ul class="section"><li><a href="ch02-01-01-codec-code.html"><strong>2.1.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-02-00-protocol.html"><strong>2.2.</strong> Protocol</a></li><li><ul class="section"><li><a href="ch02-02-01-protocol-code.html"><strong>2.2.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-03-00-service.html"><strong>2.3.</strong> Service</a></li><li><ul class="section"><li><a href="ch02-03-01-first-example.html"><strong>2.3.1.</strong> First example</a></li><li><a href="ch02-03-02-wrapping-the-server.html"><strong>2.3.2.</strong> Wrapping the server</a></li><li><a href="ch02-03-03-wrapping-the-client.html"><strong>2.3.3.</strong> Wrapping the client</a></li><li><a href="ch02-03-04-updated-example.html"><strong>2.3.4.</strong> Updated example</a></li></ul></li></ul></li><li><a href="ch03-00-second-implementation.html"><strong>3.</strong> Second implementation</a></li><li><ul class="section"><li><a href="ch03-01-00-reimplementing-the-server.html"><strong>3.1.</strong> Re-implementing the server</a></li><li><ul class="section"><li><a href="ch03-01-01-reimplementing-the-server-code.html"><strong>3.1.1.</strong> Complete code</a></li></ul></li></ul></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="ch01-00-introduction.html#introduction" id="introduction"><h1>Introduction</h1></a>
+<p>The first part of this book does not contain any code. It explains some basics
+about the library we'll build, and the tools we'll use.</p>
+<ul>
+<li><a href="ch01-01-messagepack-rpc.md">chapter 1.1</a> explains what MessagePack-RPC is and what kind of problems is solves</li>
+<li><a href="ch01-02-tokio.md">chapter 1.2</a> gives an overview of the Tokio stack</li>
+</ul>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+
+                
+                    <a href="ch01-01-messagepack-rpc.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+
+            
+                <a href="ch01-01-messagepack-rpc.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

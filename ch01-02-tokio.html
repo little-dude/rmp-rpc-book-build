@@ -1,0 +1,186 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Tokio - </title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="ch01-00-introduction.html"><strong>1.</strong> Introduction</a></li><li><ul class="section"><li><a href="ch01-01-messagepack-rpc.html"><strong>1.1.</strong> MessagePack-RPC</a></li><li><a href="ch01-02-tokio.html" class="active"><strong>1.2.</strong> Tokio</a></li></ul></li><li><a href="ch02-00-first-implementation.html"><strong>2.</strong> First implementation</a></li><li><ul class="section"><li><a href="ch02-01-00-codec.html"><strong>2.1.</strong> Codec</a></li><li><ul class="section"><li><a href="ch02-01-01-codec-code.html"><strong>2.1.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-02-00-protocol.html"><strong>2.2.</strong> Protocol</a></li><li><ul class="section"><li><a href="ch02-02-01-protocol-code.html"><strong>2.2.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-03-00-service.html"><strong>2.3.</strong> Service</a></li><li><ul class="section"><li><a href="ch02-03-01-first-example.html"><strong>2.3.1.</strong> First example</a></li><li><a href="ch02-03-02-wrapping-the-server.html"><strong>2.3.2.</strong> Wrapping the server</a></li><li><a href="ch02-03-03-wrapping-the-client.html"><strong>2.3.3.</strong> Wrapping the client</a></li><li><a href="ch02-03-04-updated-example.html"><strong>2.3.4.</strong> Updated example</a></li></ul></li></ul></li><li><a href="ch03-00-second-implementation.html"><strong>3.</strong> Second implementation</a></li><li><ul class="section"><li><a href="ch03-01-00-reimplementing-the-server.html"><strong>3.1.</strong> Re-implementing the server</a></li><li><ul class="section"><li><a href="ch03-01-01-reimplementing-the-server-code.html"><strong>3.1.1.</strong> Complete code</a></li></ul></li></ul></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="ch01-02-tokio.html#tokio" id="tokio"><h1>Tokio</h1></a>
+<p>This chapter gives an overview of the Tokio stack. I'll assume that you
+understand what futures are and how they work. If not, I recommend reading
+<a href="http://asquera.de/blog/2017-03-01/the-future-with-futures/">this excellent blog
+post</a>.</p>
+<p>Disclaimer: Async IO and event loops are complex topics that I don't pretend to
+understand. I just know some basic concepts that I'll try to explain with my
+own words. Here is the thing: you don't need to understand these topics to use
+Tokio, and that what makes it awesome in my opinion.</p>
+<a class="header" href="ch01-02-tokio.html#tokio-core" id="tokio-core"><h2>tokio-core</h2></a>
+<p>Let's start with the main piece of Tokio:
+<a href="https://docs.rs/tokio-core/">tokio-core</a>. <code>tokio-core</code> provides two things:</p>
+<ul>
+<li>
+<p>a <code>tokio_core::net</code> module that provides TCP/UDP utilities. These utilities
+are intended to be similar to the
+<a href="https://doc.rust-lang.org/std/net"><code>std::net</code></a> ones, but they are designed
+to be asynchronous: they are not blocking. For instance,
+<a href="https://doc.rust-lang.org/std/net/struct.TcpStream.html"><code>std::net::TcpStream::connect</code></a>
+blocks until the connection is established (or fails to be established) and
+the outcome is returned, whereas
+<a href="https://docs.rs/tokio-core/0.1.8/tokio_core/net/struct.TcpStream.html"><code>tokio_core::net::TcpStream::connect</code></a>
+immediately returns a future that can be polled until it finishes.</p>
+</li>
+<li>
+<p>a
+<a href="https://docs.rs/tokio-core/0.1.8/tokio_core/reactor/struct.Core.html"><code>Core</code></a>
+(aka &quot;reactor&quot; or &quot;event loop&quot;) which runs futures. We can already run futures
+with threads (via <a href="https://doc.rust-lang.org/1.6.0/std/thread/fn.spawn.html"><code>std::thread::spawn</code></a> or pools of threads (via
+<a href="https://docs.rs/futures-cpupool"><code>futures_cpupool</code></a>), so why use an
+event loop instead? I'm not entirely sure myself, but here are a few hints:</p>
+<ul>
+<li>Threads are expensive when there are many of them, due to context switches.
+You don't want to spawn thousands of threads, especially for IO extensive
+work, since most of them are going to spend most of their time waiting
+anyway.</li>
+<li>Efficiently managing multiple threads is hard. Tokio's event loop handles
+this for us. I don't need to know how many threads there are, or which ones
+should be parked or unparked.</li>
+</ul>
+</li>
+</ul>
+<a class="header" href="ch01-02-tokio.html#tokio-io-tokio-proto-and-tokio-service" id="tokio-io-tokio-proto-and-tokio-service"><h2>tokio-io, tokio-proto, and tokio-service</h2></a>
+<p><code>tokio-core</code> is quite minimalistic, but tokio also provides a few crates that
+make it easy to implement some common services, such as client and servers for
+request/response based protocols.</p>
+<ul>
+<li><code>tokio-io</code> contains traits and types to work asynchronously with streams of
+bytes.</li>
+<li><code>tokio-proto</code> implements some logic that is common to many protocols
+request/response based protocols.</li>
+<li><code>tokio-service</code> provides a <code>Service</code> trait implements how a request is
+handled.</li>
+</ul>
+<p>Here is an illustration of how these crates are used together to implement a server:</p>
+<p><img src="./images/tokio-stack-server-view.png" alt="tokio server stack illustration" /></p>
+<p>The server receives a stream of bytes from a socket. A <code>Codec</code> reads this
+stream and decode meaningful messages. These messages are then passed to the
+<code>Protocol</code>, which forwards the requests to the <code>Service</code>. The <code>Protocol</code> is
+kind of a black box, but we can imagine that for multiplexed protocols (ie
+protocol for which requests have an ID), it keeps track of the IDs and makes
+sure responses are sent with the ID of the request they correspond to. The
+<code>Service</code> handles the request and returns a response, which is in turn handled
+by the <code>Protocol</code>, which passes it to the <code>Codec</code> that sends it.</p>
+<p>The stack is quite similar for a client:</p>
+<p><img src="./images/tokio-stack-client-view.png" alt="tokio client stack illustration" /></p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="ch01-01-messagepack-rpc.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="ch02-00-first-implementation.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="ch01-01-messagepack-rpc.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="ch02-00-first-implementation.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

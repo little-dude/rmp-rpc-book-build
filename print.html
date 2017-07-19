@@ -1,0 +1,3361 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Complete code - </title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="ch01-00-introduction.html"><strong>1.</strong> Introduction</a></li><li><ul class="section"><li><a href="ch01-01-messagepack-rpc.html"><strong>1.1.</strong> MessagePack-RPC</a></li><li><a href="ch01-02-tokio.html"><strong>1.2.</strong> Tokio</a></li></ul></li><li><a href="ch02-00-first-implementation.html"><strong>2.</strong> First implementation</a></li><li><ul class="section"><li><a href="ch02-01-00-codec.html"><strong>2.1.</strong> Codec</a></li><li><ul class="section"><li><a href="ch02-01-01-codec-code.html"><strong>2.1.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-02-00-protocol.html"><strong>2.2.</strong> Protocol</a></li><li><ul class="section"><li><a href="ch02-02-01-protocol-code.html"><strong>2.2.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-03-00-service.html"><strong>2.3.</strong> Service</a></li><li><ul class="section"><li><a href="ch02-03-01-first-example.html"><strong>2.3.1.</strong> First example</a></li><li><a href="ch02-03-02-wrapping-the-server.html"><strong>2.3.2.</strong> Wrapping the server</a></li><li><a href="ch02-03-03-wrapping-the-client.html"><strong>2.3.3.</strong> Wrapping the client</a></li><li><a href="ch02-03-04-updated-example.html"><strong>2.3.4.</strong> Updated example</a></li></ul></li></ul></li><li><a href="ch03-00-second-implementation.html"><strong>3.</strong> Second implementation</a></li><li><ul class="section"><li><a href="ch03-01-00-reimplementing-the-server.html"><strong>3.1.</strong> Re-implementing the server</a></li><li><ul class="section"><li><a href="ch03-01-01-reimplementing-the-server-code.html"><strong>3.1.1.</strong> Complete code</a></li></ul></li></ul></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="print.html#introduction" id="introduction"><h1>Introduction</h1></a>
+<p>The first part of this book does not contain any code. It explains some basics
+about the library we'll build, and the tools we'll use.</p>
+<ul>
+<li><a href="ch01-01-messagepack-rpc.md">chapter 1.1</a> explains what MessagePack-RPC is and what kind of problems is solves</li>
+<li><a href="ch01-02-tokio.md">chapter 1.2</a> gives an overview of the Tokio stack</li>
+</ul>
+<a class="header" href="print.html#messagepack-rpc" id="messagepack-rpc"><h1>MessagePack-RPC</h1></a>
+<p><code>MessagePack-RPC</code> is a <strong>R</strong>emote <strong>P</strong>rocedure <strong>C</strong>all (RPC) that uses
+messages serialized using the MessagePack format. If you have no idea what that
+means, read on!</p>
+<a class="header" href="print.html#remote-procedure-call" id="remote-procedure-call"><h2>Remote Procedure Call</h2></a>
+<p>RPC stands for Remote Procedure Call. An RPC protocol defines a way for
+processes to communicate. One process (we'll call it the <em>server</em>) opens an
+input channel (usually a socket, but it can also be a stream like <code>stdin</code> for
+example), and waits for commands. Then other processes (we'll call them
+<em>clients</em>) can start sending messages to the server. The RPC protocol defines
+defines the format of the messages, as well as how they are exchanged. The
+<a href="https://en.wikipedia.org/wiki/Remote_procedure_call">wikipedia article</a> gives
+more details.</p>
+<a class="header" href="print.html#example-json-rpc" id="example-json-rpc"><h2>Example JSON-RPC</h2></a>
+<p>One widely used and simple RPC protocol is
+<a href="https://en.wikipedia.org/wiki/JSON-RPC">JSON-RPC</a>. Clients and server exchange
+JSON messages. Clients can send two types of messages: <em>requests</em> and
+<em>notifications</em>. A server can only send one type of message: <code>reponses</code>. When a
+server receives a <em>request</em>, it <strong>must</strong> answer with a <em>response</em>. When it
+receives a <em>notification</em> it <strong>must not</strong> answer.</p>
+<p>A <em>request</em> message is a JSON string that looks like this:</p>
+<pre><code>{
+    &quot;jsonrpc&quot;: &quot;2.0&quot;,
+    &quot;id&quot;: 3,
+    &quot;method&quot;: &quot;add&quot;,
+    &quot;params&quot;: [2, 2],
+}
+</code></pre>
+<ul>
+<li>the <code>jsonrpc</code> attribute is the version of the protocol.</li>
+<li>the <code>id</code> attribute identify a request. Each request has a different ID.</li>
+<li>the <code>method</code> is the name of the command sent to the server.</li>
+<li><code>params</code> can be an arbitrary JSON value. Here, it is a simple list of integers.</li>
+</ul>
+<p>This requests is basically telling the server to <code>add</code> <code>2</code> and <code>2</code>. Here is a
+potential response:</p>
+<pre><code>{
+    &quot;jsonrpc&quot;: &quot;2.0&quot;,
+    &quot;id&quot;: 3,
+    &quot;result&quot;: &quot;4&quot;,
+}
+</code></pre>
+<ul>
+<li>the <code>id</code> is the same than the request's <code>id</code>. If the client sends multiple
+requests, it can identify which response is for which request. We say that
+the protocol is <strong>multiplexed</strong>.</li>
+<li>the <code>result</code> can be an arbitrary JSON value. Here, it is an integer.</li>
+</ul>
+<p>A <em>notification</em> is similar to a request, but since no response is expected by
+the clients, it does not have an ID:</p>
+<pre><code>{
+    &quot;jsonrpc&quot;: &quot;2.0&quot;,
+    &quot;method&quot;: &quot;save&quot;,
+    &quot;params&quot;: &quot;/home/me/a_file.txt&quot;,
+}
+</code></pre>
+<p>Now that we have an idea of the concept of RPC, let's talk about MessagePack.</p>
+<a class="header" href="print.html#messagepack" id="messagepack"><h2>MessagePack</h2></a>
+<p>MessagePack is a serialization format.</p>
+<p>A serialization format defines a representation of data as a stream of
+bytes. JSON is a serialization format, but there are other formats like
+<a href="https://github.com/google/protobuf">protobuf</a> or
+<a href="http://msgpack.org/">MessagePack</a>.</p>
+<p>Each programming language has its own representation of data and the power of
+serialization formats is that they provide a common representation. For
+instance a list of integer will is represented as <code>&quot;[1, 2, 3]&quot;</code> in JSON. But
+both Rust and Python are able to deserialize this list and have their own
+representation of it:</p>
+<pre><code>Rust                    JSON                  Python
+          serialize             deserialize
+Vec&lt;u32&gt; -----------&gt; &quot;[1,2,3]&quot; -----------&gt; [1, 2, 3]
+</code></pre>
+<p>In the context of Rust we can say that a serialization format defines how to
+represent a <code>struct</code> as a stream of bytes.  This is what
+<a href="http://serde.rs/">serde</a> does.</p>
+<p>The specificity of <strong>MessagePack</strong> is that it's similar to JSON, but is more
+compact, which makes it faster and lighter to send over the network for
+example. To quote <a href="msgpack.org">msgpack.org</a>, &quot;it's like JSON, but fast and
+small&quot;. You can find the <a href="https://github.com/msgpack/msgpack/blob/master/spec.md">specifications on
+github</a>. In the Rust
+ecosystem, the main implementation of MessagePack is
+<a href="https://github.com/3Hren/msgpack-rust"><code>rmp</code></a> (which stands for Rust
+MessagePack).</p>
+<a class="header" href="print.html#messagepack-rpc-1" id="messagepack-rpc-1"><h2>MessagePack-RPC</h2></a>
+<p><strong>MessagePack-RPC</strong> is an RPC protocol that uses the MessagePack to exchange
+messages. It is very similar to the JSON-RPC protocol described above:</p>
+<ul>
+<li>it defines three types of messages: <em>notifications</em>, <em>requests</em>, and <em>responses</em></li>
+<li>requests and responses carry an ID</li>
+<li>requests must be answered with a response that carries the same ID</li>
+<li>notifications must not be answered</li>
+</ul>
+<p>The main differences with JSON-RPC are:</p>
+<ul>
+<li>it uses MessagePack instead of JSON</li>
+<li>messages don't have a &quot;version&quot; field</li>
+<li>message have a &quot;type&quot; field that tell wether they are notifications, requests or responses.</li>
+</ul>
+<p>There are other minor differences but we don't intend to give an exhaustive
+list in this document.</p>
+<a class="header" href="print.html#tokio" id="tokio"><h1>Tokio</h1></a>
+<p>This chapter gives an overview of the Tokio stack. I'll assume that you
+understand what futures are and how they work. If not, I recommend reading
+<a href="http://asquera.de/blog/2017-03-01/the-future-with-futures/">this excellent blog
+post</a>.</p>
+<p>Disclaimer: Async IO and event loops are complex topics that I don't pretend to
+understand. I just know some basic concepts that I'll try to explain with my
+own words. Here is the thing: you don't need to understand these topics to use
+Tokio, and that what makes it awesome in my opinion.</p>
+<a class="header" href="print.html#tokio-core" id="tokio-core"><h2>tokio-core</h2></a>
+<p>Let's start with the main piece of Tokio:
+<a href="https://docs.rs/tokio-core/">tokio-core</a>. <code>tokio-core</code> provides two things:</p>
+<ul>
+<li>
+<p>a <code>tokio_core::net</code> module that provides TCP/UDP utilities. These utilities
+are intended to be similar to the
+<a href="https://doc.rust-lang.org/std/net"><code>std::net</code></a> ones, but they are designed
+to be asynchronous: they are not blocking. For instance,
+<a href="https://doc.rust-lang.org/std/net/struct.TcpStream.html"><code>std::net::TcpStream::connect</code></a>
+blocks until the connection is established (or fails to be established) and
+the outcome is returned, whereas
+<a href="https://docs.rs/tokio-core/0.1.8/tokio_core/net/struct.TcpStream.html"><code>tokio_core::net::TcpStream::connect</code></a>
+immediately returns a future that can be polled until it finishes.</p>
+</li>
+<li>
+<p>a
+<a href="https://docs.rs/tokio-core/0.1.8/tokio_core/reactor/struct.Core.html"><code>Core</code></a>
+(aka &quot;reactor&quot; or &quot;event loop&quot;) which runs futures. We can already run futures
+with threads (via <a href="https://doc.rust-lang.org/1.6.0/std/thread/fn.spawn.html"><code>std::thread::spawn</code></a> or pools of threads (via
+<a href="https://docs.rs/futures-cpupool"><code>futures_cpupool</code></a>), so why use an
+event loop instead? I'm not entirely sure myself, but here are a few hints:</p>
+<ul>
+<li>Threads are expensive when there are many of them, due to context switches.
+You don't want to spawn thousands of threads, especially for IO extensive
+work, since most of them are going to spend most of their time waiting
+anyway.</li>
+<li>Efficiently managing multiple threads is hard. Tokio's event loop handles
+this for us. I don't need to know how many threads there are, or which ones
+should be parked or unparked.</li>
+</ul>
+</li>
+</ul>
+<a class="header" href="print.html#tokio-io-tokio-proto-and-tokio-service" id="tokio-io-tokio-proto-and-tokio-service"><h2>tokio-io, tokio-proto, and tokio-service</h2></a>
+<p><code>tokio-core</code> is quite minimalistic, but tokio also provides a few crates that
+make it easy to implement some common services, such as client and servers for
+request/response based protocols.</p>
+<ul>
+<li><code>tokio-io</code> contains traits and types to work asynchronously with streams of
+bytes.</li>
+<li><code>tokio-proto</code> implements some logic that is common to many protocols
+request/response based protocols.</li>
+<li><code>tokio-service</code> provides a <code>Service</code> trait implements how a request is
+handled.</li>
+</ul>
+<p>Here is an illustration of how these crates are used together to implement a server:</p>
+<p><img src="./images/tokio-stack-server-view.png" alt="tokio server stack illustration" /></p>
+<p>The server receives a stream of bytes from a socket. A <code>Codec</code> reads this
+stream and decode meaningful messages. These messages are then passed to the
+<code>Protocol</code>, which forwards the requests to the <code>Service</code>. The <code>Protocol</code> is
+kind of a black box, but we can imagine that for multiplexed protocols (ie
+protocol for which requests have an ID), it keeps track of the IDs and makes
+sure responses are sent with the ID of the request they correspond to. The
+<code>Service</code> handles the request and returns a response, which is in turn handled
+by the <code>Protocol</code>, which passes it to the <code>Codec</code> that sends it.</p>
+<p>The stack is quite similar for a client:</p>
+<p><img src="./images/tokio-stack-client-view.png" alt="tokio client stack illustration" /></p>
+<a class="header" href="print.html#first-implementation" id="first-implementation"><h1>First implementation</h1></a>
+<p>In this part, we'll implement an incomplete MessagePack-RPC library using the
+whole tokio stack:</p>
+<ul>
+<li><code>tokio-io</code> for the codec (see <a href="ch02-01-00-codec.md">chapter 2.1</a>)</li>
+<li><code>tokio-proto</code> for the protocol (see <a href="ch02-02-00-protocol.md">chapter 2.2</a>)</li>
+<li><code>tokio-service</code> for the service (see <a href="ch02-03-00-service.md">chapter 2.3</a>)</li>
+</ul>
+<p>Why an &quot;incomplete&quot; library? We'll see that using only <code>tokio-proto</code>, we cannot
+implement support for notifications. But worry not! this is something we'll fix
+in <a href="ch03-00-second-implementation">part 3</a>.</p>
+<a class="header" href="print.html#codec" id="codec"><h1>Codec</h1></a>
+<p>In this chapter, we'll implement a <code>Codec</code> that converts a stream of bytes into
+a stream of a messages.</p>
+<a class="header" href="print.html#creating-a-new-project" id="creating-a-new-project"><h2>Creating a new project</h2></a>
+<p>Let's start by creating a new project (<code>cargo new --lib rmp-rpc-demo</code>), and
+adding a few dependencies in <code>Cargo.toml</code>:</p>
+<pre><code>[package]
+name = &quot;rmp-rpc-demo&quot;
+version = &quot;0.0.1&quot;
+authors = [&quot;You &lt;you@example.com&gt;&quot;]
+description = &quot;a msgpack-rpc client and server based on tokio&quot;
+
+[dependencies]
+bytes = &quot;0.4&quot;
+rmpv = &quot;0.4&quot;
+tokio-io = &quot;0.1&quot;
+</code></pre>
+<p>We'll split the crate in several modules:</p>
+<pre><code>.
+├── Cargo.toml
+├── LICENSE-MIT
+├── README.md
+└── src
+   ├── lib.rs
+   ├── client.rs
+   ├── codec.rs
+   ├── errors.rs
+   ├── message.rs
+   ├── protocol.rs
+   └── server.rs
+</code></pre>
+<p>Create the files: <code>touch src/{client.rs,codec.rs,errors.rs,message.rs,protocol.rs,server.rs}</code>. And in
+<code>src/lib.rs</code> we'll add the dependencies we'll need for this chapter, and
+declare our modules:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+extern crate bytes;
+extern crate rmpv;
+extern crate tokio_io;
+
+mod client;
+mod codec;
+mod errors;
+mod server;
+
+pub mod message;
+pub mod protocol;
+
+#}</code></pre></pre>
+<a class="header" href="print.html#representing-messages" id="representing-messages"><h2>Representing messages</h2></a>
+<p>The first thing to do, if we want to convert a stream of bytes into a stream of
+messages is to implement a data structure that represents a MessagePack-RPC
+message.</p>
+<p>The <a href="https://github.com/msgpack-rpc/msgpack-rpc/blob/master/spec.md">MessagePack-RPC
+specifications</a>
+defines three type of messages: requests, notifications, and responses. Let's
+naively translate this to Rust. In <code>src/message.rs</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/message.rs
+
+// the specs defines a request as [type, msgid, method, params]
+pub struct Request {
+    // this field must be 0
+    pub type: u32,
+    pub id: u32,
+    pub method: String,
+    // this field is an &quot;array of arbitrary objects&quot;
+    pub params: Vec&lt;???&gt;,
+}
+
+// the specs defines a response as [type, msgid, method, params]
+pub struct Response {
+    // this field must be 1
+    pub type: u32,
+    pub id: u32,
+    pub error: Option&lt;u32&gt;,
+    // this field is a arbitrary object
+    pub result: ???,
+}
+
+pub struct Notification {
+    // this field must be 2
+    pub type: u32,
+    pub method: String,
+    // an array of arbitrary value
+    pub params: Vec&lt;???&gt;,
+}
+
+#}</code></pre></pre>
+<p>This can be improved in multiple ways:</p>
+<ul>
+<li>The spec mentions &quot;arbitrary values&quot;, but it's not clear how this translates
+to Rust (hence the <code>???</code>). Fortunately <code>rmpv</code> does have a type for &quot;arbitrary
+messagepack values&quot;:
+<a href="https://docs.rs/rmpv/0.4.0/rmpv/enum.Value.html"><code>Value</code></a>.</li>
+<li>The <code>type</code> field seems redundant. The rust type carries the same information
+than the MessagePack-RPC <code>type</code> field. We can get rid of it.</li>
+<li>The <code>Response</code> type could be improved: we have a <code>Result</code> type in Rust, we
+don't need the error field to represent a error. Let's make the <code>result</code>
+field a <code>Result</code>.</li>
+<li>We need <em>one</em> message type, not three. This can be solved with a <code>Message</code>
+enum.</li>
+</ul>
+<p>It becomes:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/message.rs
+
+use rmpv::Value;
+
+pub struct Request {
+    pub id: u32,
+    pub method: String,
+    pub params: Vec&lt;Value&gt;,
+}
+
+pub struct Response {
+    pub id: u32,
+    pub result: Result&lt;Value, Value&gt;,
+}
+
+pub struct Notification {
+    pub method: String,
+    pub params: Vec&lt;Value&gt;,
+}
+
+pub enum Message {
+    Request(Request),
+    Response(Response),
+    Notification(Notification),
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#codec-1" id="codec-1"><h2>Codec</h2></a>
+<p>We now need to create a <code>Codec</code>. A codec is a type that implements
+<a href="https://docs.rs/tokio-io/0.1.2/tokio_io/codec/trait.Decoder.html"><code>tokio_io::codec::Decoder</code></a>
+and
+<a href="https://docs.rs/tokio-io/0.1.2/tokio_io/codec/trait.Encoder.html"><code>tokio_io::codec::Encoder</code></a>.</p>
+<p>Here is the skeleton of the code, in <code>src/codec.rs</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/codec.rs
+
+use std::io;
+use tokio_io::codec::{Decoder, Encoder};
+use bytes::BytesMut;
+
+use message::Message;
+
+pub struct Codec;
+
+impl Decoder for Codec {
+    // We want the decoder to return Message items
+    type Item = Message;
+    type Error = io::Error;
+
+    fn decode(&amp;mut self, src: &amp;mut BytesMut) -&gt; io::Result&lt;Option&lt;Self::Item&gt;&gt; {
+        unimplemented!()
+    }
+}
+
+impl Encoder for Codec {
+    // We want the encoder to encode Message items
+    type Item = Message;
+    type Error = io::Error;
+
+    fn encode(&amp;mut self, msg: Self::Item, buf: &amp;mut BytesMut) -&gt; io::Result&lt;()&gt; {
+        unimplemented!()
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#encoding" id="encoding"><h3>Encoding</h3></a>
+<p>Let's focus on the encoder first. We need to somehow turn a <code>Message</code> into a
+stream of bytes conform to the specs.
+<a href="https://docs.rs/rmpv/0.4.0/rmpv/encode/fn.write_value.html"><code>rmpv::encode::write_value()</code></a>
+looks promising: it converts a <code>Value</code> into a stream of bytes and write these
+bytes in a writer. All we have to do, is turn our <code>Message</code> into a <code>Value</code>. We
+can implement this directly on <code>Message</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/message.rs
+
+use std::convert::From;
+use rmpv::{Value, Integer, Utf8String};
+
+impl Message {
+    // Turn the message into a MessagePack value
+    fn as_value(&amp;self) -&gt; Value {
+        match *self {
+            Message::Request(Request { id, ref method, ref params}) =&gt; {
+                Value::Array(vec![
+                    Value::Integer(Integer::from(0)),
+                    Value::Integer(Integer::from(id)),
+                    Value::String(Utf8String::from(method.as_str())),
+                    Value::Array(params.clone()),
+                ])
+            }
+            Message::Response(Response { id, ref result }) =&gt; {
+                let (error, result) = match *result {
+                    Ok(ref result) =&gt; (Value::Nil, result.to_owned()),
+                    Err(ref err) =&gt; (err.to_owned(), Value::Nil),
+                };
+                Value::Array(vec![
+                    Value::Integer(Integer::from(1)),
+                    Value::Integer(Integer::from(id)),
+                    error,
+                    result,
+                ])
+            }
+            Message::Notification(Notification {ref method, ref params}) =&gt; {
+                Value::Array(vec![
+                    Value::Integer(Integer::from(2)),
+                    Value::String(Utf8String::from(method.as_str())),
+                    Value::Array(params.to_owned()),
+                ])
+            }
+        }
+    }
+
+#}</code></pre></pre>
+<p>Our <code>Encoder</code> implementation becomes straightforward:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+impl Encoder for Codec {
+    type Item = Message;
+    type Error = io::Error;
+
+    fn encode(&amp;mut self, msg: Self::Item, buf: &amp;mut BytesMut) -&gt; io::Result&lt;()&gt; {
+        Ok(rmpv::encode::write_value(&amp;mut buf.writer(), &amp;msg.as_value())?)
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#decoding" id="decoding"><h3>Decoding</h3></a>
+<p>The decoder is slightly more complicated.</p>
+<a class="header" href="print.html#a-naive-decoder" id="a-naive-decoder"><h4>A naive decoder</h4></a>
+<p>We'll start by implementing <code>decode</code> on <code>Message</code> using
+<a href="https://docs.rs/rmpv/0.4.0/rmpv/decode/index.html"><code>rmpv::decode</code></a>. Since it's
+a little bit long, we'll split it in multiple methods: <code>Message::decode</code> only
+decodes the message type, and then delegates the rest to <code>Request::decode</code>,
+<code>Response::decode</code> and <code>Notification::decode</code>. We'll only show
+<code>Request::decode</code> to keep the snippets small.</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/message.rs
+
+use rmpv::decode;
+
+// ...
+
+impl Message {
+    
+    // ...
+
+    pub fn decode&lt;R: Read&gt;(rd: &amp;mut R) -&gt; Message {
+        let msg = decode::value::read_value(rd)?;
+        if let Value::Array(ref array) = msg {
+            if array.len() &lt; 3 {
+                // notification are the shortest message and have 3 items
+                panic!(&quot;Message too short&quot;);
+            }
+            if let Value::Integer(msg_type) = array[0] {
+                match msg_type.as_u64() {
+                    Some(0) =&gt; Message::Request(Message::decode(array)?),
+                    Some(1) =&gt; Message::Response(Message::decode(array)?),
+                    Some(2) =&gt; Message::Notification(Message::decode(array)?),
+                    _ =&gt; panic!(&quot;Invalid message type);
+                }
+            } else {
+                panic!(&quot;Could not decode message type);
+            }
+        } else {
+            panic!(&quot;Value is not an array&quot;);
+        }
+    }
+}
+
+impl Request {
+    fn decode(array: &amp;[Value]) -&gt; Self {
+        if array.len() &lt; 4 { panic!(&quot;Too short for a request&quot;) ; }
+
+        let id = if let Value::Integer(id) = array[1] {
+            id.as_u64().and_then(|id| Some(id as u32)).unwrap();
+        } else {
+            panic!(&quot;Cannot decode request ID&quot;);
+        };
+
+        let method = if let Value::String(ref method) = array[2] {
+            method.as_str().and_then(|s| Some(s.to_string())).unwrap();
+        } else {
+            panic!(&quot;Cannot decode request method&quot;);
+        };
+
+        let params = if let Value::Array(ref params) = array[3] {
+            params.clone()
+        } else {
+            panic!(&quot;Cannot decode request parameters&quot;);
+        };
+        Request {id: id, method: method, params: params}
+    }
+}
+
+// etc. There is a similar decode() implementation for the Notification and Response types.
+
+#}</code></pre></pre>
+<p>A <em>very</em> naive decoder implementation could be:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+impl Decoder for Codec {
+    type Item = Message;
+    type Error = io::Error;
+
+    fn decode(&amp;mut self, src: &amp;mut BytesMut) -&gt; io::Result&lt;Option&lt;Self::Item&gt;&gt; {
+        let mut buf = io::Cursor::new(&amp;src);
+        Ok(Message::decode(&amp;mut buf))
+    }
+}
+
+#}</code></pre></pre>
+<p>Unfortunately, this won't work. It won't because we have no way to know if
+there are enough bytes to read in the <code>BytesMut</code> buffer to decode a full
+message. When tokio choses to call <code>decode</code>, the buffer may even be empty. And
+given our <code>Message::decode</code> implementation, this will panic.</p>
+<a class="header" href="print.html#adding-error-handling" id="adding-error-handling"><h4>Adding error handling</h4></a>
+<p>If there are not enough bytes to read, we need to let tokio know that we need
+more bytes. Tokio we'll re-call the method later, when there is more to read.
+We do so by returning <code>Ok(None)</code>. But how do we know we need more bytes? Error
+handling! <code>Message::decode</code> could return a specific error when it fails to
+decode a message because it's incomplete. We can create a new <code>DecodeError</code>
+error type in <code>src/errors.rs</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/errors.rs
+
+use std::{error, fmt, io};
+use rmpv::decode;
+
+#[derive(Debug)]
+pub enum DecodeError {
+    // Some bytes are missing to decode a full msgpack value
+    Truncated,
+
+    // A byte sequence could not be decoded as a msgpack value, or this value is not a valid
+    // msgpack-rpc message.
+    Invalid,
+
+    // An unknown IO error while reading a byte sequence
+    UnknownIo(io::Error),
+}
+
+impl fmt::Display for DecodeError {
+    fn fmt(&amp;self, f: &amp;mut fmt::Formatter) -&gt; Result&lt;(), fmt::Error&gt; {
+        error::Error::description(self).fmt(f)
+    }
+}
+
+impl error::Error for DecodeError {
+    fn description(&amp;self) -&gt; &amp;str {
+        match *self {
+            DecodeError::Truncated =&gt; &quot;could not read enough bytes to decode a complete message&quot;,
+            DecodeError::UnknownIo(_) =&gt; &quot;Unknown IO error while decoding a message&quot;,
+            DecodeError::Invalid =&gt; &quot;the byte sequence is not a valid msgpack-rpc message&quot;,
+        }
+    }
+
+    fn cause(&amp;self) -&gt; Option&lt;&amp;error::Error&gt; {
+        match *self {
+            DecodeError::UnknownIo(ref e) =&gt; Some(e),
+            _ =&gt; None,
+        }
+    }
+}
+
+impl From&lt;io::Error&gt; for DecodeError {
+    fn from(err: io::Error) -&gt; DecodeError {
+        match err.kind() {
+
+            // If this occurs, it means `rmpv` was unable to read enough bytes to decode a full
+            // MessagePack value, so we convert this error in a DecodeError::Truncated
+            io::ErrorKind::UnexpectedEof =&gt; DecodeError::Truncated,
+
+            io::ErrorKind::Other =&gt; {
+                if let Some(cause) = err.get_ref().unwrap().cause() {
+                    if cause.description() == &quot;type mismatch&quot; {
+                        return DecodeError::Invalid;
+                    }
+                }
+                DecodeError::UnknownIo(err)
+            }
+
+            _ =&gt; DecodeError::UnknownIo(err),
+
+        }
+    }
+}
+
+impl From&lt;decode::Error&gt; for DecodeError {
+    fn from(err: decode::Error) -&gt; DecodeError {
+        match err {
+            decode::Error::InvalidMarkerRead(io_err) |
+            decode::Error::InvalidDataRead(io_err) =&gt; From::from(io_err),
+        }
+    }
+}
+
+#}</code></pre></pre>
+<p>With error handling, we can clean up our <code>decode</code> methods:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/message.rs
+
+impl Message {
+    pub fn decode&lt;R: Read&gt;(rd: &amp;mut R) -&gt; Result&lt;Message, DecodeError&gt; {
+        let msg = decode::value::read_value(rd)?;
+        if let Value::Array(ref array) = msg {
+            if array.len() &lt; 3 { return Err(DecodeError::Invalid); }
+            if let Value::Integer(msg_type) = array[0] {
+                match msg_type.as_u64() {
+                    Some(0) =&gt; return Ok(Message::Request(Request::decode(array)?)),
+                    Some(1) =&gt; return Ok(Message::Response(Response::decode(array)?)),
+                    Some(2) =&gt; return Ok(Message::Notification(Notification::decode(array)?)),
+                    _ =&gt; return Err(DecodeError::Invalid),
+                }
+            } else {
+                return Err(DecodeError::Invalid);
+            }
+        } else {
+            return Err(DecodeError::Invalid);
+        }
+    }
+    // ...
+}
+ 
+// We only show the implementation for Request. It is similar for Notification
+// and Response
+
+impl Request {
+    fn decode(array: &amp;[Value]) -&gt; Result&lt;Self, DecodeError&gt; {
+        if array.len() &lt; 4 { return Err(DecodeError::Invalid); }
+
+        let id = if let Value::Integer(id) = array[1] {
+            id.as_u64().and_then(|id| Some(id as u32)).ok_or(DecodeError::Invalid)?
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        let method = if let Value::String(ref method) = array[2] {
+            method.as_str().and_then(|s| Some(s.to_string())).ok_or(DecodeError::Invalid)?
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        let params = if let Value::Array(ref params) = array[3] {
+            params.clone()
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        Ok(Request {id: id, method: method, params: params})
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#final-decoder" id="final-decoder"><h4>Final decoder</h4></a>
+<p>The actual <code>Decoder</code> implementation now becomes:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+impl Decoder for Codec {
+    type Item = Message;
+    type Error = io::Error;
+
+    fn decode(&amp;mut self, src: &amp;mut BytesMut) -&gt; io::Result&lt;Option&lt;Self::Item&gt;&gt; {
+        let res: Result&lt;Option&lt;Self::Item&gt;, Self::Error&gt;;
+
+        // We keep track of how many bytes we read
+        let position = {
+
+            // We wrap the buffer into a Cursor that counts how many bytes we read
+            let mut buf = io::Cursor::new(&amp;src);
+
+            loop {
+                // Try to decode a message
+                match Message::decode(&amp;mut buf) {
+                    // We got a message, so we break out of the loop
+                    Ok(message) =&gt; {
+                        res = Ok(Some(message));
+                        break;
+                    }
+                    Err(err) =&gt; {
+                        match err {
+                            // Not enough bytes to decode a full message. Return Ok(None) to tell
+                            // tokio to retry later when there is more to read
+                            DecodeError::Truncated =&gt; return Ok(None),
+                            // We decoded a MessagePack value, but it's not a valid message,
+                            // so we go on, and try to read another value.
+                            DecodeError::Invalid =&gt; continue,
+                            // Something went wrong, but we don't know why.
+                            // It's safer to return an error
+                            DecodeError::UnknownIo(io_err) =&gt; {
+                                res = Err(io_err);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            buf.position() as usize
+        };
+        // Remove the bytes we read from the buffer
+        let _ = src.split_to(position);
+        // Return the message (or the error if any)
+        res
+    }
+}
+
+#}</code></pre></pre>
+<p>I hope the comments are detailed enough to understand what happens. To sum up,
+the decoder is called regularly by tokio, each time with three possible
+outcomes:</p>
+<ul>
+<li>We are able to read a message =&gt; return <code>Ok(message)</code> and remove these bytes
+from the buffer.</li>
+<li>There are not enough byte to read a message =&gt; return <code>Ok(None)</code> to tell
+tokio to retry when there is more to read, and leave the buffer intact.</li>
+<li>An error occurs:
+<ul>
+<li>An invalid MessagePack value is read =&gt; try to read the next one</li>
+<li>An unknown io error occurs =&gt; return <code>Err(the_error)</code></li>
+</ul>
+</li>
+</ul>
+<a class="header" href="print.html#complete-code" id="complete-code"><h1>Complete code</h1></a>
+<a class="header" href="print.html#cargotoml" id="cargotoml"><h2>Cargo.toml</h2></a>
+<pre><code>[package]
+name = &quot;rmp-rpc-demo&quot;
+version = &quot;0.0.1&quot;
+authors = [&quot;You &lt;you@example.com&gt;&quot;]
+description = &quot;a msgpack-rpc client and server based on tokio&quot;
+
+[dependencies]
+bytes = &quot;0.4&quot;
+rmpv = &quot;0.4&quot;
+tokio-io = &quot;0.1&quot;
+tokio-proto = &quot;0.1&quot;
+</code></pre>
+<a class="header" href="print.html#librs" id="librs"><h2>lib.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+extern crate bytes;
+extern crate rmpv;
+extern crate tokio_io;
+
+mod client;
+mod codec;
+mod errors;
+mod server;
+
+pub mod message;
+pub mod protocol;
+
+#}</code></pre></pre>
+<a class="header" href="print.html#messagers" id="messagers"><h2>message.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::convert::From;
+use std::io::Read;
+
+use errors::*;
+use rmpv::{Value, Integer, Utf8String, decode};
+
+#[derive(PartialEq, Clone, Debug)]
+pub enum Message {
+    Request(Request),
+    Response(Response),
+    Notification(Notification),
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct Request {
+    pub id: u32,
+    pub method: String,
+    pub params: Vec&lt;Value&gt;,
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct Response {
+    pub id: u32,
+    pub result: Result&lt;Value, Value&gt;,
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct Notification {
+    pub method: String,
+    pub params: Vec&lt;Value&gt;,
+}
+
+const REQUEST_MESSAGE: u64 = 0;
+const RESPONSE_MESSAGE: u64 = 1;
+const NOTIFICATION_MESSAGE: u64 = 2;
+
+impl Message {
+    pub fn decode&lt;R&gt;(rd: &amp;mut R) -&gt; Result&lt;Message, DecodeError&gt;
+    where
+        R: Read,
+    {
+        let msg = decode::value::read_value(rd)?;
+        if let Value::Array(ref array) = msg {
+            if array.len() &lt; 3 {
+                // notification are the shortest message and have 3 items
+                return Err(DecodeError::Invalid);
+            }
+            if let Value::Integer(msg_type) = array[0] {
+                match msg_type.as_u64() {
+                    Some(REQUEST_MESSAGE) =&gt; {
+                        return Ok(Message::Request(Request::decode(array)?));
+                    }
+                    Some(RESPONSE_MESSAGE) =&gt; {
+                        return Ok(Message::Response(Response::decode(array)?));
+                    }
+                    Some(NOTIFICATION_MESSAGE) =&gt; {
+                        return Ok(Message::Notification(Notification::decode(array)?));
+                    }
+                    _ =&gt; {
+                        return Err(DecodeError::Invalid);
+                    }
+                }
+            } else {
+                return Err(DecodeError::Invalid);
+            }
+        } else {
+            return Err(DecodeError::Invalid);
+        }
+    }
+
+    pub fn as_value(&amp;self) -&gt; Value {
+        match *self {
+            Message::Request(Request {
+                id,
+                ref method,
+                ref params,
+            }) =&gt; {
+                Value::Array(vec![
+                    Value::Integer(Integer::from(REQUEST_MESSAGE)),
+                    Value::Integer(Integer::from(id)),
+                    Value::String(Utf8String::from(method.as_str())),
+                    Value::Array(params.clone()),
+                ])
+            }
+            Message::Response(Response { id, ref result }) =&gt; {
+                let (error, result) = match *result {
+                    Ok(ref result) =&gt; (Value::Nil, result.to_owned()),
+                    Err(ref err) =&gt; (err.to_owned(), Value::Nil),
+                };
+                Value::Array(vec![
+                    Value::Integer(Integer::from(RESPONSE_MESSAGE)),
+                    Value::Integer(Integer::from(id)),
+                    error,
+                    result,
+                ])
+            }
+            Message::Notification(Notification {
+                ref method,
+                ref params,
+            }) =&gt; {
+                Value::Array(vec![
+                    Value::Integer(Integer::from(NOTIFICATION_MESSAGE)),
+                    Value::String(Utf8String::from(method.as_str())),
+                    Value::Array(params.to_owned()),
+                ])
+            }
+        }
+    }
+}
+
+impl Notification {
+    fn decode(array: &amp;[Value]) -&gt; Result&lt;Self, DecodeError&gt; {
+        if array.len() &lt; 3 {
+            return Err(DecodeError::Invalid);
+        }
+
+        let method = if let Value::String(ref method) = array[1] {
+            method
+                .as_str()
+                .and_then(|s| Some(s.to_string()))
+                .ok_or(DecodeError::Invalid)?
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        let params = if let Value::Array(ref params) = array[2] {
+            params.clone()
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        Ok(Notification {
+            method: method,
+            params: params,
+        })
+    }
+}
+
+impl Request {
+    fn decode(array: &amp;[Value]) -&gt; Result&lt;Self, DecodeError&gt; {
+        if array.len() &lt; 4 {
+            return Err(DecodeError::Invalid);
+        }
+
+        let id = if let Value::Integer(id) = array[1] {
+            id.as_u64()
+                .and_then(|id| Some(id as u32))
+                .ok_or(DecodeError::Invalid)?
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        let method = if let Value::String(ref method) = array[2] {
+            method
+                .as_str()
+                .and_then(|s| Some(s.to_string()))
+                .ok_or(DecodeError::Invalid)?
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        let params = if let Value::Array(ref params) = array[3] {
+            params.clone()
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        Ok(Request {
+            id: id,
+            method: method,
+            params: params,
+        })
+    }
+}
+
+impl Response {
+    fn decode(array: &amp;[Value]) -&gt; Result&lt;Self, DecodeError&gt; {
+        if array.len() &lt; 2 {
+            return Err(DecodeError::Invalid);
+        }
+
+        let id = if let Value::Integer(id) = array[1] {
+            id.as_u64()
+                .and_then(|id| Some(id as u32))
+                .ok_or(DecodeError::Invalid)?
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        match array[2] {
+            Value::Nil =&gt; {
+                Ok(Response {
+                    id: id,
+                    result: Ok(array[3].clone()),
+                })
+            }
+            ref error =&gt; {
+                Ok(Response {
+                    id: id,
+                    result: Err(error.clone()),
+                })
+            }
+        }
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#codecrs" id="codecrs"><h2>codec.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::io;
+
+use bytes::{BytesMut, BufMut};
+use rmpv;
+use tokio_io::codec::{Encoder, Decoder};
+
+use errors::DecodeError;
+use message::Message;
+
+pub struct Codec;
+
+impl Decoder for Codec {
+    type Item = Message;
+    type Error = io::Error;
+
+    fn decode(&amp;mut self, src: &amp;mut BytesMut) -&gt; io::Result&lt;Option&lt;Self::Item&gt;&gt; {
+        let res: Result&lt;Option&lt;Self::Item&gt;, Self::Error&gt;;
+        let position = {
+            let mut buf = io::Cursor::new(&amp;src);
+            loop {
+                match Message::decode(&amp;mut buf) {
+                    Ok(message) =&gt; {
+                        res = Ok(Some(message));
+                        break;
+                    }
+                    Err(err) =&gt; {
+                        match err {
+                            DecodeError::Truncated =&gt; return Ok(None),
+                            DecodeError::Invalid =&gt; continue,
+                            DecodeError::UnknownIo(io_err) =&gt; {
+                                res = Err(io_err);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            buf.position() as usize
+        };
+        let _ = src.split_to(position);
+        res
+    }
+}
+
+impl Encoder for Codec {
+    type Item = Message;
+    type Error = io::Error;
+
+    fn encode(&amp;mut self, msg: Self::Item, buf: &amp;mut BytesMut) -&gt; io::Result&lt;()&gt; {
+        Ok(rmpv::encode::write_value(
+            &amp;mut buf.writer(),
+            &amp;msg.as_value(),
+        )?)
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#errorsrs" id="errorsrs"><h2>errors.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::{error, fmt, io};
+
+use rmpv::decode;
+
+#[derive(Debug)]
+pub enum DecodeError {
+    Truncated,
+    Invalid,
+    UnknownIo(io::Error),
+}
+
+impl fmt::Display for DecodeError {
+    fn fmt(&amp;self, f: &amp;mut fmt::Formatter) -&gt; Result&lt;(), fmt::Error&gt; {
+        error::Error::description(self).fmt(f)
+    }
+}
+
+impl error::Error for DecodeError {
+    fn description(&amp;self) -&gt; &amp;str {
+        match *self {
+            DecodeError::Truncated =&gt; &quot;could not read enough bytes to decode a complete message&quot;,
+            DecodeError::UnknownIo(_) =&gt; &quot;Unknown IO error while decoding a message&quot;,
+            DecodeError::Invalid =&gt; &quot;the byte sequence is not a valid msgpack-rpc message&quot;,
+        }
+    }
+
+    fn cause(&amp;self) -&gt; Option&lt;&amp;error::Error&gt; {
+        match *self {
+            DecodeError::UnknownIo(ref e) =&gt; Some(e),
+            _ =&gt; None,
+        }
+    }
+}
+
+impl From&lt;io::Error&gt; for DecodeError {
+    fn from(err: io::Error) -&gt; DecodeError {
+        match err.kind() {
+            io::ErrorKind::UnexpectedEof =&gt; DecodeError::Truncated,
+            io::ErrorKind::Other =&gt; {
+                if let Some(cause) = err.get_ref().unwrap().cause() {
+                    if cause.description() == &quot;type mismatch&quot; {
+                        return DecodeError::Invalid;
+                    }
+                }
+                DecodeError::UnknownIo(err)
+            }
+            _ =&gt; DecodeError::UnknownIo(err),
+
+        }
+    }
+}
+
+impl From&lt;decode::Error&gt; for DecodeError {
+    fn from(err: decode::Error) -&gt; DecodeError {
+        match err {
+            decode::Error::InvalidMarkerRead(io_err) |
+            decode::Error::InvalidDataRead(io_err) =&gt; From::from(io_err),
+        }
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#protocol" id="protocol"><h1>Protocol</h1></a>
+<p>In this chapter, we'll see how to use <code>tokio-proto</code> to implement our
+MessagePack-RPC protocol.</p>
+<a class="header" href="print.html#identifying-the-protocol" id="identifying-the-protocol"><h2>Identifying the protocol</h2></a>
+<p>As explained in <a href="ch01-02-tokio.md">chapter 1.2</a>, a typical tokio client
+or server is made of three pieces: a codec, a protocol and a service. The next
+step is to implement the protocol.  <code>tokio-proto</code> provides implementations for
+different types of protocols. As explained in the
+<a href="https://docs.rs/tokio-proto/">documentation</a> it distinguishes:</p>
+<ul>
+<li><strong>pipelined</strong> and <strong>multiplexed</strong> protocols: a pipelined protocol is a protocol
+where requests are answered in the order in which they are received. A
+multiplexed protocol is a protocol for which it does not matter in which
+order requests are answered. However, that means that the client must be able
+to tell which reponse correspond to which request. For this purpose, requests
+carry an ID, and responses carry the ID of the request they correspond to.</li>
+<li><strong>streaming</strong> and <strong>non-streaming</strong> protocol: in a streaming protocol, requests
+and responses can start being processed before it is entirely received. A
+non-streaming protocol is a protocol in which requests and responses must be
+completely received before being processed.</li>
+</ul>
+<p>MessagePack-RPC is clearly a non-streaming protocol. But is it multiplexed?
+Requests and responses have an ID, but notifications don't. So should we use
+<code>tokio_proto::multiplex</code> or <code>tokio_proto::pipeline</code>? Well, none of them
+actually. I <a href="https://github.com/tokio-rs/tokio-proto/issues/170">asked the
+question</a> and the advice is
+that custom protocols should not be implemented with <code>tokio-proto</code>.</p>
+<p>For the sake of prototyping though, we'll just ignore notifications and come
+back to them later. Then, MessagePack-RPC becomes a true multiplexed protocol,
+and we can use
+<a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/multiplex/trait.ClientProto.html"><code>tokio_proto::multiplex::ClientProto</code></a>
+and
+<a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/multiplex/trait.ServerProto.html"><code>tokio_proto::multiplex::ServerProto</code></a>
+traits.</p>
+<a class="header" href="print.html#implementation" id="implementation"><h2>Implementation</h2></a>
+<p>First, we'll need to add <code>tokio-proto</code> to our dependencies.</p>
+<p>In <code>Cargo.toml</code>:</p>
+<pre><code>[package]
+name = &quot;rmp-rpc-demo&quot;
+version = &quot;0.0.1&quot;
+authors = [&quot;You &lt;you@example.com&gt;&quot;]
+description = &quot;a msgpack-rpc client and server based on tokio&quot;
+
+[dependencies]
+bytes = &quot;0.4&quot;
+rmpv = &quot;0.4&quot;
+tokio-io = &quot;0.1&quot;
+tokio-proto = &quot;0.1&quot;
+</code></pre>
+<p>And in <code>src/lib.rs</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+extern crate bytes;
+extern crate rmpv;
+extern crate tokio_io;
+extern crate tokio_proto;
+
+mod client;
+mod codec;
+mod errors;
+mod server;
+
+pub mod message;
+pub mod protocol;
+
+#}</code></pre></pre>
+<p>The protocol implemententation is straightforward, both for the client and for
+the server. All we have to do, is tell the protocol which codec it should use.
+Hint: it's the one we wrote in the previous post.</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/protocol.rs
+
+use tokio_proto::multiplex::{ClientProto, ServerProto};
+use tokio_io::codec::Framed;
+
+pub struct Protocol;
+
+impl&lt;T: AsyncRead + AsyncWrite + 'static&gt; ServerProto&lt;T&gt; for Protocol {
+    type Transport = Framed&lt;T, Codec&gt;;
+    type Request = Message;
+    type Response = Message;
+    type BindTransport = Result&lt;Self::Transport, io::Error&gt;;
+    fn bind_transport(&amp;self, io: T) -&gt; Self::BindTransport {
+        Ok(io.framed(Codec))
+    }
+}
+
+impl&lt;T: AsyncRead + AsyncWrite + 'static&gt; ClientProto&lt;T&gt; for Protocol {
+    type Request = Message;
+    type Response = Message;
+    type Transport = Framed&lt;T, Codec&gt;;
+    type BindTransport = Result&lt;Self::Transport, io::Error&gt;;
+    fn bind_transport(&amp;self, io: T) -&gt; Self::BindTransport {
+        Ok(io.framed(Codec))
+    }
+}
+
+#}</code></pre></pre>
+<p>The code is short, but many things happen:</p>
+<ul>
+<li>We set the <code>Transport</code> associated type to <a href="https://docs.rs/tokio-io/0.1.2/tokio_io/codec/struct.Framed.html"><code>Framed&lt;T, Codec&gt;</code></a>,
+where <code>T</code> is a type that implements <code>tokio::io::AsyncRead</code> and
+<code>tokio::io::AsyncWrite</code>. <code>T</code> can be seen as a raw I/O object, such as a
+TCP/UDP or TLS stream. It manipulates bytes. <code>Framed&lt;T, Codec&gt;</code> is a higher
+level I/O objects that uses the <code>Codec</code> we wrote earlier to convert this
+stream of bytes into a stream of <code>Message</code>.</li>
+<li>We set the <code>Request</code> and <code>Response</code> associated types to <code>Message</code> because
+that's our <code>Codec</code> manipulates (it encodes <code>Message</code>s and decodes <code>Message</code>s)</li>
+<li>I'm less sure about the <code>BindTransport</code> associated types. It looks like
+implementation detail to me.</li>
+</ul>
+<p>Looks good but when we compile we get a bunch of errors.</p>
+<pre><code>error[E0271]: type mismatch resolving `&lt;tokio_io::codec::Framed&lt;T, Codec&gt; as futures::stream::Stream&gt;::Item == (u64, Message)`
+   --&gt; src/lib.rs:269:43
+    |                                                                                                                         
+269 | impl&lt;T: AsyncRead + AsyncWrite + 'static&gt; ServerProto&lt;T&gt; for Protocol {
+    |                                           ^^^^^^^^^^^^^^ expected enum `Message`, found tuple                           
+    |                                                                                                                         
+    = note: expected type `Message`                                                                                           
+               found type `(u64, Message)`                                                                                    
+    = note: required by `tokio_proto::multiplex::ServerProto`                                                                 
+</code></pre>
+<p>Indeed, if we [take a closer look]((https://docs.rs/tokio-proto/0.1.1/tokio_proto/multiplex/trait.ClientProto.html)
+at
+<a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/multiplex/trait.ClientProto.html"><code>tokio_proto::multiplex::ClientProto</code></a>
+we notice that <code>Transport</code> has the following trait bound:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+# // add dummy trait to have some syntax highlighting
+# trait Dummy {
+type Transport: 'static
+              + Stream&lt;Item = (RequestId, Self::Response), Error = io::Error&gt;
+              + Sink&lt;SinkItem = (RequestId, Self::Request), SinkError = io::Error&gt;
+# }
+
+#}</code></pre></pre>
+<p>But as per <a href="https://docs.rs/tokio-io/0.1.2/tokio_io/codec/struct.Framed.html">the <code>Framed</code> documention</a>,
+our <code>Framed&lt;T, Codec&gt;</code> implements:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+Stream&lt;Item=Codec::Item, Codec::Error&gt; + Sink&lt;SinkItem = Codec::Item, SinkError = Codec::Error&gt;
+
+#}</code></pre></pre>
+<p>which corresponds to:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+Stream&lt;Item = Message, Error = io::Error&gt; + Sink&lt;SinkItem = Message, SinkError = io::Error&gt;
+
+#}</code></pre></pre>
+<p>This is because we're using the multiplexed version of <code>ClientProto</code> and
+<code>ServerProto</code>. The codec needs to be updated to handle the message IDs. Again,
+this is pretty easy <em>if we ignore notifications</em>.</p>
+<a class="header" href="print.html#tweaking-the-codec" id="tweaking-the-codec"><h2>Tweaking the codec</h2></a>
+<p>The decoder should now return a tuple <code>(u64, Message)</code> instead of a <code>Message</code>.
+We can tweak the <code>Decodec</code> implementation to achieve this:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/codec.rs
+
+impl Decoder for Codec {
+    type Item = (u64, Message);
+    type Error = io::Error;
+
+    fn decode(&amp;mut self, src: &amp;mut BytesMut) -&gt; io::Result&lt;Option&lt;Self::Item&gt;&gt; {
+        let res: Result&lt;Option&lt;Self::Item&gt;, Self::Error&gt;;
+        let position = {
+            let mut buf = io::Cursor::new(&amp;src);
+            loop {
+                match Message::decode(&amp;mut buf) {
+                    Ok(message) =&gt; {
+                        res = match message {
+                            // We now need to extract the ID of the message
+                            // and return it separately
+                            Message::Request(Request { id, .. }) | Message::Response(Response { id, .. }) =&gt; {
+                                Ok(Some((id as u64, message)))
+                            },
+                            Message::Notification(_) =&gt; panic!(&quot;Notifications not supported&quot;),
+                        };
+                        break;
+                    }
+                    Err(err) =&gt; {
+                        match err {
+                            DecodeError::Truncated =&gt; return Ok(None),
+                            DecodeError::Invalid =&gt; continue,
+                            DecodeError::UnknownIo(io_err) =&gt; {
+                                res = Err(io_err);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            buf.position() as usize
+        };
+        let _ = src.split_to(position);
+        res
+    }
+}
+
+#}</code></pre></pre>
+<p>Similarly, the <code>Encoder</code> should now take an ID as argument. It becomes:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/codec.rs
+
+impl Encoder for Codec {
+    type Item = (u64, Message);
+    type Error = io::Error;
+
+    fn encode(&amp;mut self, item: Self::Item, buf: &amp;mut BytesMut) -&gt; io::Result&lt;()&gt; {
+        let (id, mut message) = item;
+        match message {
+            Message::Response(ref mut response) =&gt; {
+                response.id = id as u32;
+            }
+            Message::Request(ref mut request) =&gt; {
+                request.id = id as u32;
+            }
+            Message::Notification(_) =&gt; panic!(&quot;Notifications not supported&quot;),
+        }
+        Ok(rmpv::encode::write_value(&amp;mut buf.writer(), &amp;message.as_value())?)
+    }
+}
+
+#}</code></pre></pre>
+<p><code>cargo build</code>, and... it compiles!</p>
+<a class="header" href="print.html#complete-code-1" id="complete-code-1"><h1>Complete code</h1></a>
+<a class="header" href="print.html#cargotoml-1" id="cargotoml-1"><h2>Cargo.toml</h2></a>
+<pre><code>[package]
+name = &quot;rmp-rpc-demo&quot;
+version = &quot;0.0.1&quot;
+authors = [&quot;You &lt;you@example.com&gt;&quot;]
+description = &quot;a msgpack-rpc client and server based on tokio&quot;
+
+[dependencies]
+bytes = &quot;0.4&quot;
+rmpv = &quot;0.4&quot;
+tokio-io = &quot;0.1&quot;
+tokio-proto = &quot;0.1&quot;
+</code></pre>
+<a class="header" href="print.html#librs-1" id="librs-1"><h2>lib.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+extern crate bytes;
+extern crate rmpv;
+extern crate tokio_io;
+extern crate tokio_proto;
+
+mod client;
+mod codec;
+mod errors;
+mod server;
+
+pub mod message;
+pub mod protocol;
+
+#}</code></pre></pre>
+<a class="header" href="print.html#codecrs-1" id="codecrs-1"><h2>codec.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::io;
+
+use bytes::{BytesMut, BufMut};
+use rmpv;
+use tokio_io::codec::{Encoder, Decoder};
+
+use errors::DecodeError;
+use message::{Message, Request, Response};
+
+pub struct Codec;
+
+impl Decoder for Codec {
+    type Item = (u64, Message);
+    type Error = io::Error;
+
+    fn decode(&amp;mut self, src: &amp;mut BytesMut) -&gt; io::Result&lt;Option&lt;Self::Item&gt;&gt; {
+        let res: Result&lt;Option&lt;Self::Item&gt;, Self::Error&gt;;
+        let position = {
+            let mut buf = io::Cursor::new(&amp;src);
+            loop {
+                match Message::decode(&amp;mut buf) {
+                    Ok(message) =&gt; {
+                        res = match message {
+                            Message::Request(Request { id, .. }) | Message::Response(Response { id, .. }) =&gt; {
+                                Ok(Some((id as u64, message)))
+                            },
+                            Message::Notification(_) =&gt; panic!(&quot;Notifications not supported&quot;),
+                        };
+                        break;
+                    }
+                    Err(err) =&gt; {
+                        match err {
+                            DecodeError::Truncated =&gt; return Ok(None),
+                            DecodeError::Invalid =&gt; continue,
+                            DecodeError::UnknownIo(io_err) =&gt; {
+                                res = Err(io_err);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            buf.position() as usize
+        };
+        let _ = src.split_to(position);
+        res
+    }
+}
+
+impl Encoder for Codec {
+    type Item = (u64, Message);
+    type Error = io::Error;
+
+    fn encode(&amp;mut self, item: Self::Item, buf: &amp;mut BytesMut) -&gt; io::Result&lt;()&gt; {
+        let (id, mut message) = item;
+        match message {
+            Message::Response(ref mut response) =&gt; {
+                response.id = id as u32;
+            }
+            Message::Request(ref mut request) =&gt; {
+                request.id = id as u32;
+            }
+            Message::Notification(_) =&gt; panic!(&quot;Notifications not supported&quot;),
+        }
+        Ok(rmpv::encode::write_value(&amp;mut buf.writer(), &amp;message.as_value())?)
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#protocolrs" id="protocolrs"><h2>protocol.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::io;
+
+use tokio_proto::multiplex::{ClientProto, ServerProto};
+use tokio_io::{AsyncRead, AsyncWrite};
+use tokio_io::codec::Framed;
+
+use message::Message;
+use codec::Codec;
+
+pub struct Protocol;
+
+impl&lt;T: AsyncRead + AsyncWrite + 'static&gt; ServerProto&lt;T&gt; for Protocol {
+    type Transport = Framed&lt;T, Codec&gt;;
+    type Request = Message;
+    type Response = Message;
+    type BindTransport = Result&lt;Self::Transport, io::Error&gt;;
+    fn bind_transport(&amp;self, io: T) -&gt; Self::BindTransport {
+        Ok(io.framed(Codec))
+    }
+}
+
+impl&lt;T: AsyncRead + AsyncWrite + 'static&gt; ClientProto&lt;T&gt; for Protocol {
+    type Request = Message;
+    type Response = Message;
+    type Transport = Framed&lt;T, Codec&gt;;
+    type BindTransport = Result&lt;Self::Transport, io::Error&gt;;
+    fn bind_transport(&amp;self, io: T) -&gt; Self::BindTransport {
+        Ok(io.framed(Codec))
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#service" id="service"><h1>Service</h1></a>
+<p>The last piece of the Tokio stack is the <code>Service</code> trait. Our library does not
+have to provide a <code>Service</code> implementation. Users can already build a
+MessagePack-RPC server and client with the <code>Protocol</code> implementation the
+library provides. In this chapter we'll build a simple example server using the
+library as it stands. Then, we'll show how to provide a custom <code>Service</code>
+implementation to make the library more user friendly.</p>
+<a class="header" href="print.html#first-example" id="first-example"><h1>First example</h1></a>
+<p>In this part, we'll build a simple example server and make a few requests.</p>
+<a class="header" href="print.html#specifications" id="specifications"><h2>Specifications</h2></a>
+<p>The server we are going to build provides two methods <code>add</code>, and <code>sub</code>, that
+takes two integers as parameters, and return respectively their sum and their
+difference. I does not handle any notifications.</p>
+<a class="header" href="print.html#creating-an-example" id="creating-an-example"><h2>Creating an example</h2></a>
+<p>Rust makes it pretty easy to create example. We are going to put all the code under <code>examples/calculator.rs</code>:</p>
+<pre><code>mkdir examples
+touch examples/calculator.rs
+</code></pre>
+<p>We'll need a few additional dependencies that we declare them in <code>Cargo.toml</code>:</p>
+<pre><code>[dev-dependencies]
+tokio-core = &quot;0.1&quot;
+tokio-service = &quot;0.1&quot;
+futures = &quot;0.1&quot;
+</code></pre>
+<p>To make things easier, let also import everything we're going to need:</p>
+<pre><pre class="playpen"><code class="language-rust">// examples/calculator.rs
+
+extern crate futures;
+extern crate rmpv;
+extern crate rmp_rpc;
+extern crate tokio_core;
+extern crate tokio_proto;
+extern crate tokio_service;
+
+use std::{error, io, fmt, thread};
+use std::time::Duration;
+
+use tokio_core::reactor::Core;
+use tokio_proto::{TcpClient, TcpServer};
+use tokio_service::{NewService, Service};
+use rmpv::Value;
+use futures::{future, Future};
+use rmp_rpc::{Message, Response, Request, Protocol};
+
+fn main() {
+}
+</code></pre></pre>
+<a class="header" href="print.html#server-implementation" id="server-implementation"><h2>Server implementation</h2></a>
+<p><a href="https://docs.rs/tokio-service/0.1.0/tokio_service/trait.Service.html">As explained</a>
+in the <code>Service</code> trait documentation, a server implements the <code>Service</code> trait.
+We'll create an empty <code>CalculatorService</code> type, and implement <code>Service</code> for it:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+struct CalculatorService;
+
+impl Service for CalculatorService {
+    type Request = Message;
+    type Response = Message;
+    type Error = String;
+    type Future = Box&lt;Future&lt;Item = Message, Error = String&gt;&gt;;
+
+    fn call(&amp;self, req: Message) -&gt; Self::Future {
+        unimplemented!()
+    }
+}
+
+#}</code></pre></pre>
+<p>This little snippet already deserves some explanations:</p>
+<ul>
+<li>since our protocol encodes and decodes <code>Message</code>s, the <code>Service::Request</code> and <code>Service::Response</code> associated types are both <code>Message</code>.</li>
+<li>for now, the <code>Service::Error</code> type does not really matter. We used a <code>String</code> because that's the most simple type of error.</li>
+<li>the trait imposes that the service returns a type that implements <code>Future&lt;Item=Self::Message, Error=Self::Error&gt;</code>. The easiest way to return a <code>Future</code> at the moment is to use <a href="https://doc.rust-lang.org/stable/book/second-edition/ch17-02-trait-objects.html">trait objects</a>, <em>i.e.</em> to return a <code>Box&lt;Future&gt;</code>. This makes the type a little verbose but that should improve very soon!</li>
+</ul>
+<p>The actual implementation is a little bit tedious, because we have to parse the
+arguments and handle all the cases where they are wrong. To keep
+<code>Service::call()</code> readable, we implement the request handling on
+<code>CalculatorService</code> directly, and only use <code>Service::call()</code> to dispatch the
+request. The code looks like:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+struct CalculatorService;
+
+impl CalculatorService {
+    fn handle_request(&amp;self, method: &amp;str, params: &amp;[Value]) -&gt; Result&lt;Value, Value&gt; {
+        if params.len() != 2 {
+            return Err(&quot;Expected two arguments&quot;.into());
+        }
+        if !params[0].is_i64() || !params[1].is_i64() {
+            return Err(&quot;Invalid argument&quot;.into());
+        }
+        let res = match method {
+            &quot;add&quot; =&gt; params[0].as_i64().unwrap() + params[1].as_i64().unwrap(),
+            &quot;sub&quot; =&gt; params[0].as_i64().unwrap() - params[1].as_i64().unwrap(),
+            _ =&gt; return Err(&quot;Unknown method&quot;.into()),
+        };
+        Ok(res.into())
+    }
+}
+
+impl Service for CalculatorService {
+    type Request = Message;
+    type Response = Message;
+    type Error = String;
+    type Future = Box&lt;Future&lt;Item = Message, Error = String&gt;&gt;;
+
+    fn call(&amp;self, req: Message) -&gt; Self::Future {
+        match req {
+            Message::Request( Request { method, params, .. }) =&gt; {
+                let result = self.handle_request(&amp;method, &amp;params);
+                let response = Message::Response(Response { id: 0, result: result });
+                return Box::new(future::ok(response));
+            }
+            _ =&gt; Box::new(future::err(&quot;Unsupported message type&quot;.into())),
+        }
+    }
+}
+
+#}</code></pre></pre>
+<p>Notice that the response returned by the service always has its <code>id</code> attribute
+set to <code>0</code>. This is because the protocol handles the IDs for us and the service
+does not need to know anything about the protocol.</p>
+<p>We can now start serve the service through TCP. We'll use
+<a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/struct.TcpServer.html"><code>tokio_proto::TcpServer</code></a>
+for this:</p>
+<pre><pre class="playpen"><code class="language-rust">fn main() {
+    let server = TcpServer::new(Protocol, &quot;127.0.0.1:12345&quot;.parse().unwrap());
+    server.serve(CalculatorService {});
+}
+</code></pre></pre>
+<p>The first line creates a <code>TcpServer</code> that uses the MessagePack-RPC protocol we
+implemented with <code>tokio-proto</code>, and that listens on <code>127.0.0.1:12345</code>. The
+seconds line starts the server, and tells it to run the <code>CalculatorService</code>.
+Unfortunately:</p>
+<pre><code>$ cargo run --example  calculator
+   Compiling rmp-rpc-demo v0.1.0 (file:///home/little-dude/rust/rmp-rpc-demo)
+
+error[E0277]: the trait bound `CalculatorService: std::ops::Fn&lt;()&gt;` is not satisfied
+  --&gt; examples/calculator.rs:53:12
+   |
+53 |     server.serve(CalculatorService {});
+   |            ^^^^^ the trait `std::ops::Fn&lt;()&gt;` is not implemented for `CalculatorService`
+   |
+   = note: required because of the requirements on the impl of `tokio_service::NewService` for `CalculatorService`
+
+error: aborting due to previous error
+error: Could not compile `rmp-rpc-demo`.
+</code></pre>
+<p>The
+<a href="https://docs.rs/tokio-service/0.1.0/tokio_service/trait.NewService.html#associatedtype.Error">documentation</a>
+shows that <code>NewService</code> is a trait that returns a service. This seems a little
+bit weird: why would <code>TcpServer::serve</code> require a type that <em>returns</em> a service
+and not a type that <em>implements</em> a service? The reason for this is that
+internally, tokio creates a new service for each client that connects.</p>
+<p>Let's listen to the compiler and implement <code>NewService</code>. We can do that
+directly on <code>CalculatorService</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+impl NewService for CalculatorService {
+    type Request = Message;
+    type Response = Message;
+    type Error = String;
+    type Instance = CalculatorService;
+
+    fn new_service(&amp;self) -&gt; io::Result&lt;Self::Instance&gt; {
+        Ok(self.clone())
+    }
+}
+
+#}</code></pre></pre>
+<p>Aaaand...</p>
+<pre><code>error[E0277]: the trait bound `std::io::Error: std::convert::From&lt;std::string::String&gt;` is not satisfied
+  --&gt; examples/calculator.rs:66:12
+   |
+66 |     server.serve(CalculatorService {});
+   |            ^^^^^ the trait `std::convert::From&lt;std::string::String&gt;` is not implemented for `std::io::Error`
+   |
+   = help: the following implementations were found:
+             &lt;std::io::Error as std::convert::From&lt;rmpv::encode::ValueWriteError&gt;&gt;
+             &lt;std::io::Error as std::convert::From&lt;rmp::encode::MarkerWriteError&gt;&gt;
+             &lt;std::io::Error as std::convert::From&lt;rmp::encode::DataWriteError&gt;&gt;
+             &lt;std::io::Error as std::convert::From&lt;std::ffi::NulError&gt;&gt;
+           and 2 others
+   = note: required because of the requirements on the impl of `std::convert::Into&lt;std::io::Error&gt;` for `std::string::String`
+
+error: aborting due to previous error
+
+error: Could not compile `rmp-rpc-demo`.
+</code></pre>
+<p>The compiler confuses me here: nothing in the <code>NewService</code> trait indicates the
+trait bound <code>NewService::Error: Into&lt;io::Error&gt;</code>. If a reader understands
+what's going on here, please let me know. Anywya, since we can't implement
+<code>Into&lt;io::Error&gt;</code> for <code>String</code>, we are left with two options:</p>
+<ul>
+<li>use our own error type that implements <code>Into&lt;io::Error&gt;</code></li>
+<li>use <code>io::Error</code> direclty</li>
+</ul>
+<p>We'll go for the first one, which is cleaner in my opinion:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+struct ServiceError(String);
+
+impl fmt::Display for ServiceError {
+    fn fmt(&amp;self, f: &amp;mut fmt::Formatter) -&gt; Result&lt;(), fmt::Error&gt; {
+        write!(f, ServiceError({}), self.0)
+    }
+}
+
+impl error::Error for DecodeError {
+    fn description(&amp;self) -&gt; &amp;str {
+        &quot;An error occured while processing a request&quot;
+    }
+
+    fn cause(&amp;self) -&gt; Option&lt;&amp;error::Error&gt; { None }
+}
+
+impl From&lt;&amp;str&gt; for ServiceError {
+    fn from(err: &amp;str) -&gt; Self { ServiceError(err.into()) }
+}
+
+impl From&lt;ServiceError&gt; for io::Error {
+    fn from(err: ServiceError) -&gt; Self {
+        io::Error::new(io::ErrorKind::Other, err.0)
+    }
+}
+
+#}</code></pre></pre>
+<p>This is pretty basic. The <code>From&lt;&amp;str&gt;</code> implementation allow us to make only
+minimal changes to the <code>Service</code> and <code>NewService</code> traits. All we have to change
+is the error type:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+impl NewService for CalculatorService {
+    type Request = Message;
+    type Response = Message;
+    type Error = ServiceError;
+    type Instance = CalculatorService;
+
+    // ...
+}
+
+impl Service for CalculatorService {
+    type Request = Message;
+    type Response = Message;
+    type Error = ServiceError;
+    type Future = Box&lt;Future&lt;Item = Message, Error = ServiceError&gt;&gt;;
+
+    // ...
+}
+
+#}</code></pre></pre>
+<p><code>cargo build --example calculator</code> now works.</p>
+<p>The last step is to run the server in background:</p>
+<pre><pre class="playpen"><code class="language-rust">
+fn main() {
+    let addr = &quot;127.0.0.1:12345&quot;.parse().unwrap();
+
+    let server = TcpServer::new(Protocol, addr);
+    thread::spawn(move || {
+        server.serve(CalculatorService {});
+    });
+
+    thread::sleep(Duration::from_millis(100));
+
+    // The client code goes here
+}
+</code></pre></pre>
+<a class="header" href="print.html#client-implementation" id="client-implementation"><h2>Client implementation</h2></a>
+<p>The client is much simpler:</p>
+<pre><pre class="playpen"><code class="language-rust">fn main() {
+    let addr = &quot;127.0.0.1:12345&quot;.parse().unwrap();
+
+    let server = TcpServer::new(Protocol, addr);
+    thread::spawn(move || {
+        server.serve(CalculatorService {});
+    });
+
+    thread::sleep(Duration::from_millis(100));
+
+    let mut core = Core::new().unwrap();
+    let handle = core.handle();
+
+    let connection = TcpClient::new(Protocol).connect(&amp;addr, &amp;handle);
+    let requests = connection.and_then(|client| {
+        let req = Message::Request(Request {
+            method: &quot;add&quot;.into(),
+            id: 0,
+            params: vec![1.into(), 2.into()],
+        });
+        client.call(req)
+            .and_then(move |response| {
+                println!(&quot;{:?}&quot;, response);
+
+                let req = Message::Request(Request {
+                    method: &quot;wrong&quot;.into(),
+                    id: 0,
+                    params: vec![],
+                });
+                client.call(req)
+            })
+        .and_then(|response| {
+            println!(&quot;{:?}&quot;, response);
+            Ok(())
+        })
+    });
+    let _ = core.run(requests);
+}
+</code></pre></pre>
+<p>This code creates an event loop (<code>core</code>), a future (<code>requests</code>), and runs this
+future until it completes (<code>core.run()</code>).  We send two requests, and print the
+responses. The first one is a valid requests, and the second one an invalid one
+(it has an invalid method name). Just like for the server, we set the ID of the
+requests to 0, and rely on the protocol to do the right thing.</p>
+<p>When we run it the output should look like:</p>
+<pre><code>Response(Response { id: 0, result: Ok(Integer(PosInt(3))) })
+Response(Response { id: 1, result: Err(String(Utf8String { s: Ok(&quot;Unknown method&quot;) })) })
+</code></pre>
+<p>Some readers may have noticed that we didn't implement the <code>Service</code> for the
+client, which seems to contradict the diagram I showed in <a href="introduction/2.md">the chapter
+2</a>:</p>
+<p><img src="./images/tokio-stack-client-view.png" alt="tokio client stack illustration" /></p>
+<p>Actually, the <code>Service</code> <em>is</em> there. But it is already provided by tokio. The magic operates here:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+let connection = TcpClient::new(Protocol).connect(&amp;addr, &amp;handle);
+let requests = connection.and_then(|client| {
+    // client implements `Service`! That's why we can do client.call(...)
+    // but how come?
+});
+
+#}</code></pre></pre>
+<p><a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/struct.TcpClient.html#method.connect"><code>tokio_proto::TcpClient::connect()</code>
+returns</a>
+a
+<a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/struct.Connect.html"><code>tokio_proto::Connect</code></a>,
+which is a future that <a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/trait.BindClient.html">returns a
+<code>tokio_proto::BindClient</code></a>
+when it completes. Here is <code>BindClient</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+pub trait BindClient&lt;Kind, T: 'static&gt;: 'static {
+    type ServiceRequest;
+    type ServiceResponse;
+    type ServiceError;
+    type BindClient: Service&lt;Request = Self::ServiceRequest, Response = Self::ServiceResponse, Error = Self::ServiceError&gt;;
+    fn bind_client(&amp;self, handle: &amp;Handle, io: T) -&gt; Self::BindClient;
+}
+
+#}</code></pre></pre>
+<p><code>BindClient</code> is a complex type, and according to the documentation, it does not
+implement <code>Service</code>. However, it does have a <code>BindClient</code> associated type that
+<em>does</em> implement service. It is actually <em>this</em> associated type that is
+returned, but we have to <a href="https://docs.rs/tokio-proto/0.1.1/src/tokio_proto/tcp_client.rs.html#48">dive in the
+sources</a>
+to see <code>bind_client</code> being called.</p>
+<p>FIXME: there is still one thing I'm not sure about in the code above. Why does
+the <code>TcpClient::connect()</code> method takes a handle as argument?  Handles are used
+to spawn tasks on the even loop so the only assumption I can make is that
+internally, <code>TcpClient::connect()</code> spawns a task, but I don't know what.</p>
+<a class="header" href="print.html#complete-code-2" id="complete-code-2"><h2>Complete code</h2></a>
+<a class="header" href="print.html#cargotoml-2" id="cargotoml-2"><h3>Cargo.toml</h3></a>
+<pre><code>[package]
+name = &quot;rmp-rpc-demo&quot;
+version = &quot;0.0.1&quot;
+authors = [&quot;You &lt;you@example.com&gt;&quot;]
+description = &quot;a msgpack-rpc client and server based on tokio&quot;
+
+[dependencies]
+bytes = &quot;0.4&quot;
+rmpv = &quot;0.4&quot;
+tokio-io = &quot;0.1&quot;
+tokio-proto = &quot;0.1&quot;
+
+[dev-dependencies]
+tokio-core = &quot;0.1&quot;
+tokio-service = &quot;0.1&quot;
+futures = &quot;0.1&quot;
+</code></pre>
+<a class="header" href="print.html#examplescalculatorrs" id="examplescalculatorrs"><h3>examples/calculator.rs</h3></a>
+<pre><pre class="playpen"><code class="language-rust">extern crate rmpv;
+extern crate rmp_rpc_demo;
+extern crate tokio_core;
+extern crate tokio_proto;
+extern crate tokio_service;
+extern crate futures;
+
+use std::{error, io, fmt, thread};
+use std::time::Duration;
+
+use tokio_core::reactor::Core;
+use tokio_proto::{TcpClient, TcpServer};
+use tokio_service::{NewService, Service};
+use rmpv::Value;
+use futures::{future, Future};
+use rmp_rpc_demo::message::{Message, Response, Request};
+use rmp_rpc_demo::protocol::Protocol;
+
+#[derive(Clone)]
+struct CalculatorService;
+
+
+impl Service for CalculatorService {
+    type Request = Message;
+    type Response = Message;
+    type Error = ServiceError;
+    type Future = Box&lt;Future&lt;Item = Message, Error = ServiceError&gt;&gt;;
+
+    fn call(&amp;self, req: Message) -&gt; Self::Future {
+        match req {
+            Message::Request( Request { method, params, .. }) =&gt; {
+                let result = self.handle_request(&amp;method, &amp;params);
+                let response = Message::Response(Response { id: 0, result: result });
+                return Box::new(future::ok(response));
+            }
+            _ =&gt; Box::new(future::err(&quot;Unsupported message type&quot;.into())),
+        }
+    }
+}
+
+impl NewService for CalculatorService {
+    type Request = Message;
+    type Response = Message;
+    type Error = ServiceError;
+    type Instance = CalculatorService;
+
+    fn new_service(&amp;self) -&gt; io::Result&lt;Self::Instance&gt; {
+        Ok(self.clone())
+    }
+}
+
+#[derive(Debug)]
+struct ServiceError(String);
+
+impl fmt::Display for ServiceError {
+    fn fmt(&amp;self, f: &amp;mut fmt::Formatter) -&gt; Result&lt;(), fmt::Error&gt; {
+        write!(f, &quot;ServiceError({})&quot;, self.0)
+    }
+}
+
+impl error::Error for ServiceError {
+    fn description(&amp;self) -&gt; &amp;str {
+        &quot;An error occured while processing a request&quot;
+    }
+
+    fn cause(&amp;self) -&gt; Option&lt;&amp;error::Error&gt; {
+        None
+    }
+}
+
+impl&lt;'a&gt; From&lt;&amp;'a str&gt; for ServiceError {
+    fn from(err: &amp;'a str) -&gt; Self {
+        ServiceError(err.into())
+    }
+}
+
+impl From&lt;ServiceError&gt; for io::Error {
+    fn from(err: ServiceError) -&gt; Self {
+        io::Error::new(io::ErrorKind::Other, err.0)
+    }
+}
+
+fn main() {
+    let addr = &quot;127.0.0.1:12345&quot;.parse().unwrap();
+
+    let server = TcpServer::new(Protocol, addr);
+    thread::spawn(move || {
+        server.serve(CalculatorService {});
+    });
+
+    thread::sleep(Duration::from_millis(100));
+
+    let mut core = Core::new().unwrap();
+    let handle = core.handle();
+
+    let connection = TcpClient::new(Protocol).connect(&amp;addr, &amp;handle);
+    let requests = connection.and_then(|client| {
+        let req = Message::Request(Request {
+            method: &quot;add&quot;.into(),
+            id: 0,
+            params: vec![1.into(), 2.into()],
+        });
+        client.call(req)
+            .and_then(move |response| {
+                println!(&quot;{:?}&quot;, response);
+
+                let req = Message::Request(Request {
+                    method: &quot;wrong&quot;.into(),
+                    id: 0,
+                    params: vec![],
+                });
+                client.call(req)
+            })
+        .and_then(|response| {
+            println!(&quot;{:?}&quot;, response);
+            Ok(())
+        })
+    });
+    let _ = core.run(requests);
+}
+</code></pre></pre>
+<a class="header" href="print.html#wrapping-the-server" id="wrapping-the-server"><h1>Wrapping the server</h1></a>
+<p>The previous example was quite tedious to write. In this chapter, we'll see
+that we can provide some code in our library, that would make it easier to
+implement servers. Basically, we are going to move some code from our example
+into the library.</p>
+<a class="header" href="print.html#preliminaries" id="preliminaries"><h2>Preliminaries</h2></a>
+<p>We'll start by moving the <code>[dev-dependencies]</code> we used for our example as
+regular dependencies.</p>
+<p>In <code>Cargo.toml</code>:</p>
+<pre><code>[package]
+name = &quot;rmp-rpc-demo&quot;
+version = &quot;0.0.1&quot;
+authors = [&quot;You &lt;you@example.com&gt;&quot;]
+description = &quot;a msgpack-rpc client and server based on tokio&quot;
+
+[dependencies]
+bytes = &quot;0.4&quot;
+futures = &quot;0.1&quot;
+rmpv = &quot;0.4&quot;
+tokio-core = &quot;0.1&quot;
+tokio-io = &quot;0.1&quot;
+tokio-proto = &quot;0.1&quot;
+tokio-service = &quot;0.1&quot;
+</code></pre>
+<p>And the <code>src/lib.rs</code> should look like this (note that we also made the
+<code>protocol</code> module private, and the <code>client</code> and <code>server</code> modules public):</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+extern crate bytes;
+extern crate futures;
+extern crate rmpv;
+extern crate tokio_core;
+extern crate tokio_io;
+extern crate tokio_proto;
+extern crate tokio_service;
+
+mod codec;
+mod errors;
+mod protocol;
+
+pub mod client;
+pub mod message;
+pub mod server;
+
+#}</code></pre></pre>
+<a class="header" href="print.html#implementation-1" id="implementation-1"><h2>Implementation</h2></a>
+<p>In the previous example, our <code>Service</code> implementation was only matching on the
+incoming messages, and dispatching the requests to the <code>CalculatorService</code>
+implementation. We could spare users the pain to write this boilerplate code by
+wrapping the <code>Service</code>, and providing another trait.</p>
+<p>Basically, we would ask users to implement this trait:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use rmpv::Value;
+
+pub trait Handler {
+    fn handle_request(&amp;mut self, method: &amp;str, params: &amp;[Value]) -&gt; Result&lt;Value, Value&gt;;
+}
+
+#}</code></pre></pre>
+<p>If we don't want users to implement <code>Service</code> themself, we need to provide an
+implementation of it for any type that implements our <code>Handler</code> trait:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use futures::Future;
+use tokio_service::Service;
+use message::Message;
+
+impl&lt;T: Handler&gt; Service for T {
+    type Request = Message;
+    type Response = Message;
+    type Error = io::Error;
+    type Future = BoxFuture&lt;Self::Response, Self::Error&gt;;
+
+    fn call(&amp;self, message: Self::Request) -&gt; Self::Future {
+        // TODO
+    }
+}
+
+#}</code></pre></pre>
+<p>And the actual implementation can amost be copy/pasted from the previous
+example:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use futures::{future, Future};
+use tokio_service::Service;
+use message::{Request, Response, Message};
+
+impl&lt;T: Handler&gt; Service for T {
+    type Request = Message;
+    type Response = Message;
+    type Error = ServiceError;
+    type Future = Box&lt;Future&lt;Item = Message, Error = ServiceError&gt;&gt;;
+
+    fn call(&amp;self, message: Message) -&gt; Self::Future {
+        match req {
+            Message::Request( Request { method, params, .. }) =&gt; {
+                let result = self.handle_request(&amp;method, &amp;params);
+                let response = Message::Response(Response { id: 0, result: result });
+                return Box::new(future::ok(response));
+            }
+            _ =&gt; Box::new(future::err(&quot;Unsupported message type&quot;.into())),
+        }
+    }
+}
+
+#}</code></pre></pre>
+<p>The only thing missing is the <code>ServiceError</code> type, but again, we can just copy
+paste it from our example. Let's put it under <code>src/errors.rs</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/errors.rs
+
+#[derive(Debug)]
+pub struct ServiceError(String);
+
+impl fmt::Display for ServiceError {
+    fn fmt(&amp;self, f: &amp;mut fmt::Formatter) -&gt; Result&lt;(), fmt::Error&gt; {
+        write!(f, &quot;ServiceError({})&quot;, self.0)
+    }
+}
+
+impl error::Error for ServiceError {
+    fn description(&amp;self) -&gt; &amp;str {
+        &quot;An error occured while processing a request&quot;
+    }
+
+    fn cause(&amp;self) -&gt; Option&lt;&amp;error::Error&gt; {
+        None
+    }
+}
+
+impl&lt;'a&gt; From&lt;&amp;'a str&gt; for ServiceError {
+    fn from(err: &amp;'a str) -&gt; Self {
+        ServiceError(err.into())
+    }
+}
+
+impl From&lt;ServiceError&gt; for io::Error {
+    fn from(err: ServiceError) -&gt; Self {
+        io::Error::new(io::ErrorKind::Other, err.0)
+    }
+}
+
+#}</code></pre></pre>
+<p>Unfortunately, compilation fails:</p>
+<pre><code>compiling rmp-rpc-demo v0.1.0 (file:///home/corentih/rust/rmp-rpc-demo)
+error[E0119]: conflicting implementations of trait `tokio_service::Service` for type `std::boxed::Box&lt;_&gt;`:
+  --&gt; src/server.rs:20:1
+   |
+20 | / impl&lt;T: Handler&gt; Service for T {
+21 | |     type Request = Message;
+22 | |     type Response = Message;
+23 | |     type Error = ServiceError;
+...  |
+35 | |     }
+36 | | }
+   | |_^
+   |
+   = note: conflicting implementation in crate `tokio_service`
+
+error[E0210]: type parameter `T` must be used as the type parameter for some local type (e.g. `MyStruct&lt;T&gt;`); only traits defined in the current crate can be implemented for a type parameter
+  --&gt; src/server.rs:20:1
+   |
+20 | / impl&lt;T: Handler&gt; Service for T {
+21 | |     type Request = Message;
+22 | |     type Response = Message;
+23 | |     type Error = ServiceError;
+...  |
+35 | |     }
+36 | | }
+   | |_^
+
+error: aborting due to 2 previous errors
+
+error: Could not compile `rmp-rpc-demo`.
+
+To learn more, run the command again with --verbose.
+</code></pre>
+<p>Since <code>Service</code> is defined in another crate, we cannot implement it for <em>any</em>
+trait. That is the priviledge of the crate that defines the trait. The rule
+that enforces this is called the
+<a href="https://github.com/rust-lang/rfcs/blob/master/text/1023-rebalancing-coherence.md">orphaned rule</a>.
+To work around this limitation, we can introduce a new type that is generic
+over any type <code>T</code> that implement <code>Handler</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+pub struct Server&lt;T: Handler&gt;(T);
+
+impl&lt;T: Handler&gt; Server&lt;T&gt; {
+    pub fn new(handler: T) -&gt; Self {
+        Server(handler)
+    }
+}
+
+impl&lt;T: Handler&gt; Service for Server&lt;T&gt; {
+    // unchanged
+}
+
+#}</code></pre></pre>
+<p>We forgot one last thing: <code>Server&lt;T&gt;</code> must not only implement <code>Service</code>, but
+also <code>NewService</code>. In our example, we implemented <code>NewService</code> by cloning the
+service. We can do the same here and clone <code>Server&lt;T&gt;</code>. That means <code>T</code> must be
+clone-able, so we also add a <code>Clone</code> trait bound:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+pub struct Server&lt;T: Handler + Clone&gt;(T);
+
+impl&lt;T: Handler + Clone&gt; Server&lt;T&gt; {
+    pub fn new(handler: T) -&gt; Self {
+        Server(handler)
+    }
+}
+
+impl&lt;T: Handler + Clone&gt; Service for Server&lt;T&gt; {
+    // unchanged
+}
+
+impl&lt;T: Handler + Clone&gt; NewService for Server&lt;T&gt; {
+    type Request = Message;
+    type Response = Message;
+    type Error = ServiceError;
+    type Instance = Server&lt;T&gt;;
+
+    fn new_service(&amp;self) -&gt; io::Result&lt;Self::Instance&gt; {
+        Ok(Server(self.0.clone()))
+    }
+}
+
+#}</code></pre></pre>
+<p>Finally, we can spare users the effort of starting a new <code>TcpServer</code> like we did in the example with:</p>
+<pre><pre class="playpen"><code class="language-rust">use std::thread;
+use tokio_proto::TcpServer;
+use rmp_rpc_demo::protocol::Protocol;
+
+// ...
+
+fn main() {
+    // ...
+    let server = TcpServer::new(Protocol, addr);
+    thread::spawn(move || {
+        server.serve(CalculatorService {});
+    });
+    // ...
+}
+</code></pre></pre>
+<p>Let's implement a <code>serve()</code> method on <code>Server&lt;T&gt;</code> that consumes it:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use tokio_proto::TcpServer;
+use protocol::Protocol;
+
+
+impl&lt;T: Handler + Clone&gt; Server&lt;T&gt; {
+    // ...
+    pub fn serve(self, address: SocketAddr) {
+        TcpServer::new(Protocol, address).serve(self)
+    }
+}
+
+#}</code></pre></pre>
+<p>Not that this is a blocking method. Users will still have to spawn it in a
+separate thread to run it in background.</p>
+<p>Unfortunately, the code fails to compile:</p>
+<pre><code>error[E0277]: the trait bound `T: std::marker::Send` is not satisfied in `server::Server&lt;T&gt;`
+  --&gt; src/server.rs:25:43
+   |
+25 |         TcpServer::new(Protocol, address).serve(self)
+   |                                           ^^^^^ within `server::Server&lt;T&gt;`, the trait `std::marker::Send` is not implemented for `T`
+   |
+   = help: consider adding a `where T: std::marker::Send` bound
+   = note: required because it appears within the type `server::Server&lt;T&gt;`
+</code></pre>
+<p>Indeed, looking at <a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/struct.TcpServer.html#method.serve">the documentation for
+<code>TcpServer::serve()</code></a>,
+it appears that the argument has the following trait bounds:</p>
+<pre><code>NewService + Send + Sync + 'static
+</code></pre>
+<p>Well, let's just add these trait bounds:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+pub struct Server&lt;T: Handler + Clone + Sync + Send + 'static&gt;(T);
+
+impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; Server&lt;T&gt; {
+    // ...
+}
+
+impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; Service for Server&lt;T&gt; {
+    // ...
+}
+
+impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; NewService for Server&lt;T&gt; {
+    // ...
+}
+
+#}</code></pre></pre>
+<p>And this time, it should compile!</p>
+<a class="header" href="print.html#complete-code-3" id="complete-code-3"><h1>Complete code</h1></a>
+<a class="header" href="print.html#serverrs" id="serverrs"><h2>server.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::net::SocketAddr;
+use std::io;
+
+use futures::{Future, future};
+use rmpv::Value;
+use tokio_proto::TcpServer;
+use tokio_service::{NewService, Service};
+
+use errors::ServiceError;
+use message::{Message, Response, Request};
+use protocol::Protocol;
+
+pub trait Handler {
+    fn handle_request(&amp;self, method: &amp;str, params: &amp;[Value]) -&gt; Result&lt;Value, Value&gt;;
+}
+
+pub struct Server&lt;T: Handler + Clone + Sync + Send + 'static&gt;(T);
+
+impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; Server&lt;T&gt; {
+    pub fn new(handler: T) -&gt; Self {
+        Server(handler)
+    }
+
+    pub fn serve(self, address: SocketAddr) {
+        TcpServer::new(Protocol, address).serve(self)
+    }
+}
+
+impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; Service for Server&lt;T&gt; {
+    type Request = Message;
+    type Response = Message;
+    type Error = ServiceError;
+    type Future = Box&lt;Future&lt;Item = Message, Error = ServiceError&gt;&gt;;
+
+    fn call(&amp;self, message: Message) -&gt; Self::Future {
+        match message {
+            Message::Request( Request { method, params, .. }) =&gt; {
+                let result = self.0.handle_request(&amp;method, &amp;params);
+                let response = Message::Response(Response { id: 0, result: result });
+                return Box::new(future::ok(response));
+            }
+            _ =&gt; Box::new(future::err(&quot;Unsupported message type&quot;.into())),
+        }
+    }
+}
+
+impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; NewService for Server&lt;T&gt; {
+    type Request = Message;
+    type Response = Message;
+    type Error = ServiceError;
+    type Instance = Server&lt;T&gt;;
+
+    fn new_service(&amp;self) -&gt; io::Result&lt;Self::Instance&gt; {
+        Ok(Server(self.0.clone()))
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#wrapping-the-client" id="wrapping-the-client"><h1>Wrapping the client</h1></a>
+<p>Just like for the server, there is some boilerplate code that can be spared to
+users. This kind of code is un-necessarily verbose for example:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+let req = Message::Request(Request {
+    method: &quot;add&quot;.into(),
+    id: 0,
+    params: vec![1.into(), 2.into()],
+});
+client.call(req).and_then(|response| {
+    // ...
+});
+
+#}</code></pre></pre>
+<p>We should not have to build a full <code>Message</code> in the first place. To send a
+request, users should just have to call a method that takes two arguments: the
+method, and the parameters. Let's build a <code>Client</code> type with such a method:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/client.rs
+
+use std::io;
+use futures::{Future, BoxFuture};
+use rmpv::Value;
+
+pub struct Client;
+
+pub type Response = Box&lt;Future&lt;Item = Result&lt;Value, Value&gt;, Error = io::Error&gt;&gt;;
+
+impl Client {
+    pub fn request(&amp;self, method: &amp;str, params: Vec&lt;Value&gt;) -&gt; Response {
+        // TODO
+    }
+}
+
+#}</code></pre></pre>
+<p>This is a bit naive because as it stands, <code>Client</code> is an empty type. Instead,
+it should wrap a type that implements <code>Service</code> and can send requests. It turns
+out that tokio provides such a type:
+<a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/multiplex/struct.ClientService.html"><code>tokio_proto::multiplex::ClientService</code></a>.
+All we have to do is wrap it and use it to send the requests:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/client.rs
+
+// ...
+use tokio_proto::multiplex::ClientService;
+use message::{Message, Request};
+
+pub struct Client(ClientService&lt;TcpStream, Protocol&gt;);
+
+pub type Response = Box&lt;Future&lt;Item = Result&lt;Value, Value&gt;, Error = io::Error&gt;&gt;;
+
+impl Client {
+    pub fn request(&amp;self, method: &amp;str, params: Vec&lt;Value&gt;) -&gt; Response {
+        let req = Message::Request(Request {
+            // we can set this to 0 because under the hood it's handle by tokio at the
+            // protocol/codec level
+            id: 0,
+            method: method.to_string(),
+            params: params,
+        });
+        let resp = self.0.call(req).and_then(|resp| {
+            match resp {
+                Message::Response(response) =&gt; Ok(response.result),
+                _ =&gt; panic!(&quot;Response is not a Message::Response&quot;);
+            }
+        });
+        Box::new(resp) as Response
+    }
+}
+
+#}</code></pre></pre>
+<p>It is easy to adapt the example code to add a <code>connect()</code> method as well:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/client.rs
+
+// ...
+use tokio_proto::TcpClient;
+
+// ...
+
+impl Client {
+    pub fn connect(addr: &amp;SocketAddr, handle: &amp;Handle) -&gt; Box&lt;Future&lt;Item = Client, Error = io::Error&gt;&gt; {
+        let ret = TcpClient::new(Protocol)
+            .connect(addr, handle)
+            .map(Client);
+        Box::new(ret)
+    }
+
+    // ...
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#complete-code-4" id="complete-code-4"><h1>Complete code</h1></a>
+<a class="header" href="print.html#clientrs" id="clientrs"><h2>client.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::io;
+use std::net::SocketAddr;
+
+use futures::Future;
+use tokio_core::net::TcpStream;
+use tokio_core::reactor::Handle;
+use tokio_proto::multiplex::ClientService;
+use tokio_proto::TcpClient;
+use tokio_service::Service;
+use rmpv::Value;
+
+use message::{Message, Request};
+use protocol::Protocol;
+
+
+pub struct Client(ClientService&lt;TcpStream, Protocol&gt;);
+
+pub type Response = Box&lt;Future&lt;Item = Result&lt;Value, Value&gt;, Error = io::Error&gt;&gt;;
+
+impl Client {
+    pub fn connect(addr: &amp;SocketAddr, handle: &amp;Handle) -&gt; Box&lt;Future&lt;Item = Client, Error = io::Error&gt;&gt; {
+        let ret = TcpClient::new(Protocol)
+            .connect(addr, handle)
+            .map(Client);
+        Box::new(ret)
+    }
+
+    pub fn request(&amp;self, method: &amp;str, params: Vec&lt;Value&gt;) -&gt; Response {
+        let req = Message::Request(Request {
+            // we can set this to 0 because under the hood it's handle by tokio at the
+            // protocol/codec level
+            id: 0,
+            method: method.to_string(),
+            params: params,
+        });
+        let resp = self.0.call(req).and_then(|resp| {
+            match resp {
+                Message::Response(response) =&gt; Ok(response.result),
+                _ =&gt; panic!(&quot;Response is not a Message::Response&quot;),
+            }
+        });
+        Box::new(resp) as Response
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#updated-example" id="updated-example"><h1>Updated example</h1></a>
+<p>TODO: step by step explanations</p>
+<a class="header" href="print.html#complete-code-5" id="complete-code-5"><h2>Complete code</h2></a>
+<pre><pre class="playpen"><code class="language-rust">extern crate rmpv;
+extern crate rmp_rpc;
+extern crate tokio_core;
+extern crate tokio_proto;
+extern crate tokio_service;
+extern crate futures;
+
+use std::{error, io, fmt, thread};
+use std::time::Duration;
+
+use tokio_core::reactor::Core;
+use tokio_proto::{TcpClient, TcpServer};
+use tokio_service::{NewService, Service};
+use rmpv::Value;
+use futures::{future, Future};
+use rmp_rpc::message::{Message, Response, Request};
+use rmp_rpc::protocol::Protocol;
+
+#[derive(Clone)]
+struct CalculatorServer;
+
+impl CalculatorService {
+    fn handle_request(&amp;self, method: &amp;str, params: &amp;[Value]) -&gt; Result&lt;Value, Value&gt; {
+        if params.len() != 2 {
+            return Err(&quot;Expected two arguments&quot;.into());
+        }
+        if !params[0].is_i64() || !params[1].is_i64() {
+            return Err(&quot;Invalid argument&quot;.into());
+        }
+        let res = match method {
+            &quot;add&quot; =&gt; params[0].as_i64().unwrap() + params[1].as_i64().unwrap(),
+            &quot;sub&quot; =&gt; params[0].as_i64().unwrap() - params[1].as_i64().unwrap(),
+            _ =&gt; return Err(&quot;Unknown method&quot;.into()),
+        };
+        Ok(res.into())
+    }
+}
+
+impl NewService for CalculatorServer {
+    type Request = Message;
+    type Response = Message;
+    type Error = ServiceError;
+    type Instance = CalculatorServer;
+
+    fn new_service(&amp;self) -&gt; io::Result&lt;Self::Instance&gt; {
+        Ok(self.clone())
+    }
+}
+
+impl Service for CalculatorServer {
+    type Request = Message;
+    type Response = Message;
+    type Error = ServiceError;
+    type Future = Box&lt;Future&lt;Item = Message, Error = ServiceError&gt;&gt;;
+
+    fn call(&amp;self, req: Message) -&gt; Self::Future {
+        match req {
+            Message::Request( Request { method, params, .. }) =&gt; {
+                let result = self.handle_request(&amp;method, &amp;params);
+                let response = Message::Response(Response { id: 0, result: result });
+                return Box::new(future::ok(response));
+            }
+            _ =&gt; Box::new(future::err(&quot;Unsupported message type&quot;.into())),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ServiceError(String);
+
+impl fmt::Display for ServiceError {
+    fn fmt(&amp;self, f: &amp;mut fmt::Formatter) -&gt; Result&lt;(), fmt::Error&gt; {
+        write!(f, &quot;ServiceError({})&quot;, self.0)
+    }
+}
+
+impl error::Error for ServiceError {
+    fn description(&amp;self) -&gt; &amp;str {
+        &quot;An error occured while processing a request&quot;
+    }
+
+    fn cause(&amp;self) -&gt; Option&lt;&amp;error::Error&gt; {
+        None
+    }
+}
+
+impl&lt;'a&gt; From&lt;&amp;'a str&gt; for ServiceError {
+    fn from(err: &amp;'a str) -&gt; Self {
+        ServiceError(err.into())
+    }
+}
+
+impl From&lt;ServiceError&gt; for io::Error {
+    fn from(err: ServiceError) -&gt; Self {
+        io::Error::new(io::ErrorKind::Other, err.0)
+    }
+}
+
+fn main() {
+    let addr = &quot;127.0.0.1:12345&quot;.parse().unwrap();
+
+    let server = TcpServer::new(Protocol, addr);
+    thread::spawn(move || {
+        server.serve(CalculatorServer {});
+    });
+
+    thread::sleep(Duration::from_millis(100));
+
+    let mut core = Core::new().unwrap();
+    let handle = core.handle();
+
+    let connection = TcpClient::new(Protocol).connect(&amp;addr, &amp;handle);
+    let requests = connection.and_then(|client| {
+        let req = Message::Request(Request {
+            method: &quot;add&quot;.into(),
+            id: 0,
+            params: vec![1.into(), 2.into()],
+        });
+        client.call(req)
+            .and_then(move |response| {
+                println!(&quot;{:?}&quot;, response);
+
+                let req = Message::Request(Request {
+                    method: &quot;wrong&quot;.into(),
+                    id: 0,
+                    params: vec![],
+                });
+                client.call(req)
+            })
+        .and_then(|response| {
+            println!(&quot;{:?}&quot;, response);
+            Ok(())
+        })
+    });
+    let _ = core.run(requests);
+}
+</code></pre></pre>
+<a class="header" href="print.html#second-implementation" id="second-implementation"><h1>Second implementation</h1></a>
+<p>Using the full tokio stack, we built a basic MessagePack-RPC client and server
+able to handle requests and responses, but unable to handle notifications. This
+limitation is due to <code>tokio-proto</code> only providing protocol implementations for
+request/response based protocols. The problem is that, there is no way to
+extend <code>tokio-proto</code>, so we will have to re-implement something ourself.</p>
+<p>We'll start by the server (the easy part), then implement a client. The
+implementation of both component is heavily inspired by Tokio's <code>tokio-proto</code>
+and <code>tokio-service</code>.</p>
+<a class="header" href="print.html#preliminaries-1" id="preliminaries-1"><h2>Preliminaries</h2></a>
+<p>Before starting implementing the server, let's cleanup a few things:</p>
+<ul>
+<li>remove the <code>protocol</code> module:</li>
+</ul>
+<pre><code>rm -f src/protocol.rs
+sed -i '/mod protocol;/d' src/lib.rs
+</code></pre>
+<ul>
+<li>empty the <code>server</code> and <code>client</code> modules:</li>
+</ul>
+<pre><code>printf '' | tee src/{server.rs,client.rs}
+</code></pre>
+<ul>
+<li>remove the <code>tokio_proto</code> and <code>tokio_service</code> dependencies:</li>
+</ul>
+<pre><code>sed -i '/tokio[-_]\(service\|proto\)/d' Cargo.toml src/lib.rs
+</code></pre>
+<ul>
+<li>remove the &quot;hack&quot; in the codec that we introduced in the <a href="ch02-02-00-protocol.md">chapter
+2.2</a>, when we wanted the codec to handle IDs. This is
+not necessary anymore since we won't rely on <code>tokio_proto</code>. The code should be the same than at the <a href="ch02-01-01-codec-code.html#codecrs">end of chapter 2.1</a>.</li>
+</ul>
+<a class="header" href="print.html#complete-code-6" id="complete-code-6"><h2>Complete code</h2></a>
+<a class="header" href="print.html#cargotoml-3" id="cargotoml-3"><h3>Cargo.toml</h3></a>
+<pre><code>[package]
+name = &quot;rmp-rpc-demo&quot;
+version = &quot;0.0.1&quot;
+authors = [&quot;You &lt;you@example.com&gt;&quot;]
+description = &quot;a msgpack-rpc client and server based on tokio&quot;
+
+[dependencies]
+bytes = &quot;0.4&quot;
+futures = &quot;0.1&quot;
+rmpv = &quot;0.4&quot;
+tokio-core = &quot;0.1&quot;
+tokio-io = &quot;0.1&quot;
+</code></pre>
+<a class="header" href="print.html#srclibrs" id="srclibrs"><h3>src/lib.rs</h3></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+extern crate bytes;
+extern crate futures;
+extern crate rmpv;
+extern crate tokio_core;
+extern crate tokio_io;
+
+mod codec;
+mod errors;
+
+pub mod client;
+pub mod message;
+pub mod server;
+
+#}</code></pre></pre>
+<a class="header" href="print.html#srcclientrs" id="srcclientrs"><h3>src/client.rs</h3></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// empty
+
+#}</code></pre></pre>
+<a class="header" href="print.html#srcserverrs" id="srcserverrs"><h3>src/server.rs</h3></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// empty
+
+#}</code></pre></pre>
+<a class="header" href="print.html#codecrs-2" id="codecrs-2"><h3>codec.rs</h3></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/codec.rs
+
+use std::io;
+
+use bytes::{BytesMut, BufMut};
+use rmpv;
+use tokio_io::codec::{Encoder, Decoder};
+
+use errors::DecodeError;
+use message::Message;
+
+pub struct Codec;
+
+impl Decoder for Codec {
+    type Item = Message;
+    type Error = io::Error;
+
+    fn decode(&amp;mut self, src: &amp;mut BytesMut) -&gt; io::Result&lt;Option&lt;Self::Item&gt;&gt; {
+        let res: Result&lt;Option&lt;Self::Item&gt;, Self::Error&gt;;
+        let position = {
+            let mut buf = io::Cursor::new(&amp;src);
+            loop {
+                match Message::decode(&amp;mut buf) {
+                    Ok(message) =&gt; {
+                        res = Ok(Some(message));
+                        break;
+                    }
+                    Err(err) =&gt; {
+                        match err {
+                            DecodeError::Truncated =&gt; return Ok(None),
+                            DecodeError::Invalid =&gt; continue,
+                            DecodeError::UnknownIo(io_err) =&gt; {
+                                res = Err(io_err);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            buf.position() as usize
+        };
+        let _ = src.split_to(position);
+        res
+    }
+}
+
+impl Encoder for Codec {
+    type Item = Message;
+    type Error = io::Error;
+
+    fn encode(&amp;mut self, msg: Self::Item, buf: &amp;mut BytesMut) -&gt; io::Result&lt;()&gt; {
+        Ok(rmpv::encode::write_value(
+            &amp;mut buf.writer(),
+            &amp;msg.as_value(),
+        )?)
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="print.html#preliminaries-2" id="preliminaries-2"><h1>Preliminaries</h1></a>
+<p>We'll start by implementing the server. So let's empty <code>src/server.rs</code>, and
+import everything we'll need:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::io;
+use std::collections::HashMap;
+use std::error::Error;
+use std::net::SocketAddr;
+
+use futures::{Async, Poll, Future, Stream, Sink, BoxFuture};
+use rmpv::Value;
+use tokio_core::net::{TcpStream, TcpListener};
+use tokio_core::reactor::Core;
+use tokio_io::AsyncRead;
+use tokio_io::codec::Framed;
+
+use codec::Codec;
+use message::{Response, Message};
+
+#}</code></pre></pre>
+<p>When working on this library, I kept looking at Tokio's source code. As a
+result, I ended up doing things in a very similar way: our library with provide
+a <code>Service</code> and a <code>ServiceBuilder</code> traits, similar to Tokio's <code>Service</code> and
+<code>NewService</code> traits.</p>
+<p>Let's start with the <code>Service</code> trait, that must be implemented by users who
+want build their MessagePack-RPC server. Unlike Tokio's <code>Service</code> trait, it
+will have two methods instead of one: one to handle requests, and one to handle
+notifications.</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+pub trait Service {
+    type Error: Error;
+    type T: Into&lt;Value&gt;;
+    type E: Into&lt;Value&gt;;
+
+    fn handle_request(&amp;mut self, method: &amp;str, params: &amp;[Value]) -&gt; BoxFuture&lt;Result&lt;Self::T, Self::E&gt;, Self::Error&gt;;
+
+    fn handle_notification(&amp;mut self, method: &amp;str, params: &amp;[Value]) -&gt; BoxFuture&lt;(), Self::Error&gt;;
+}
+
+#}</code></pre></pre>
+<p>Note that these method do not take a <code>Message</code> as argument. This is to avoid
+users this kind of code we wrote in the previous example:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+fn call(&amp;self, msg: Message) -&gt; SomeReturnType {
+    match msg {
+        Message::Request( Request { method, params, .. }) =&gt; {
+            // handle the request
+        }
+        Message::Notification ( Notification { method, params, .. }) =&gt; {
+            // handle the notification
+        }
+        _ =&gt; {
+            // handle this as an error
+        }
+    }
+}
+
+#}</code></pre></pre>
+<p>Also, notice that <code>Service::handle_request()</code> returns a future that produces a
+<code>Result&lt;T, E&gt;</code> where <code>T</code> and <code>E</code> can be converted into values, instead of a
+<code>Result&lt;Value, Value&gt;</code>. This will make implementors life a tiny bit easier, and
+makes the signature nicer.</p>
+<p>For each client, a new <code>Service</code> will be created, so we also a builder trait,
+similar to <code>NewService</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+pub trait ServiceBuilder {
+    type Service: Service + 'static;
+
+    fn build(&amp;self) -&gt; Self::Service;
+}
+
+#}</code></pre></pre>
+<p>Finally, for each client a new future will be spawned. This future shall read
+the messages coming from the client, dispatch them to the <code>Service</code>, and
+forward the responses back to the client. This future is not a function but a
+type that implements the <code>Future</code> trait. We'll call it <code>Server</code>. The server
+owns a service instance, and a TCP stream connected to the client.</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+struct Server&lt;S: Service&gt; {
+    service: S,
+    stream: TcpStream
+    // ...
+}
+
+impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
+    fn new(service: S, tcp_stream: TcpStream) -&gt; Self {
+        Server { service: service, stream: tcp_stream }
+    }
+}
+
+impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
+    type Item = ();
+    type Error = io::Error;
+
+    fn poll(&amp;mut self) -&gt; Poll&lt;Self::Item, Self::Error&gt; {
+        // TODO:
+        //  - read incoming messages from the client
+        //  - dispatch them to the Service
+        //  - send the responses back to the client
+    }
+}
+
+#}</code></pre></pre>
+<p>We'll start by turning the <code>TcpStream</code> into <code>Framed&lt;TcpStream, Codec&gt;</code> where
+<code>Codec</code> is the MessagePack-RPC codec we wrote earlier. That will allow us to
+read and write <code>Message</code> instead of bytes:</p>
+<pre><code>struct Server&lt;S: Service&gt; {
+    service: S,
+    stream: Framed&lt;TcpStream, Codec&gt;
+    // ...
+}
+
+impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
+    fn new(service: S, tcp_stream: TcpStream) -&gt; Self {
+        Server { service: service, stream: tcp_stream.framed(Codec) }
+    }
+}
+</code></pre>
+<p>The biggest task is to implement <code>Future</code>. The first thing it has to do is to
+read the incoming messages and dispatch them to the service:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+
+#fn main() {
+impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
+    type Item = ();
+    type Error = io::Error;
+
+    fn poll(&amp;mut self) -&gt; Poll&lt;Self::Item, Self::Error&gt; {
+        // Read the messages from the client
+        loop {
+            // Poll the stream
+            match self.stream.poll().unwrap() {
+                // We got a message, let's dispatch it to the Service
+                Async::Ready(Some(msg)) =&gt; self.dispatch_message(msg),
+                // The stream finished, probably because the client closed the connection.
+                // There is no need for the server to continue so we return Async::Ready(())
+                // to notify tokio that this future finished
+                Async::Ready(None) =&gt; return Ok(Async::Ready(())),
+                // There is no new message ready to be read.
+                // Let's just break out of this loop
+                Async::NotReady =&gt; break,
+            }
+        }
+
+        // TODO: send back the responses that the service procuced, if any
+
+        // Important! Notify tokio that this future is not ready yet. By
+        // returning Async::NotReady we tell tokio to re-schedule this future for
+        // polling.
+        Ok(Async::NotReady)
+    }
+}
+
+#}</code></pre></pre>
+<p>It's important to understand that when spawning a <code>Server</code> instance on a tokio
+event loop, tokio will keep calling <code>poll()</code> as long as it return
+<code>Ok(Async::NotReady)</code>. In other words, the server runs until <code>poll()</code> returns
+an error or <code>Ok(Async::Ready(()))</code>.</p>
+<p>Let's take a closer look at the <code>Server::dispatch_message()</code> method:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
+
+    // ...
+
+    fn dispatch_message(&amp;mut self, msg: Message) {
+        match msg {
+            Message::Request(request) =&gt; {
+                let method = request.method.as_str();
+                let params = request.params;
+                let response = self.service.handle_request(method, &amp;params);
+            }
+            Message::Notification(notification) =&gt; {
+                let method = notification.method.as_str();
+                let params = notification.params;
+                let outcome = self.service.handle_notification(method, &amp;params);
+            }
+            // Let's just silently ignore responses.
+            Message::Response(_) =&gt; return;
+        }
+    }
+}
+
+#}</code></pre></pre>
+<p>Pretty straightforward except that... we need to keep track of the futures
+returned by <code>handle_request()</code> and <code>handle_notfication()</code> of course. Since
+responses have an ID, it seems natural to use a hashmap and use the ID as a
+key. For the notifications, a vector is enough:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+struct Server&lt;S: Service&gt; {
+    service: S,
+    stream: Framed&lt;TcpStream, Codec&gt;,
+    request_tasks: HashMap&lt;u32, BoxFuture&lt;Result&lt;S::T, S::E&gt;, S::Error&gt;&gt;,
+    notification_tasks: Vec&lt;BoxFuture&lt;(), S::Error&gt;&gt;,
+}
+
+impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
+    fn new(service: S, tcp_stream: TcpStream) -&gt; Self {
+        Server {
+            service: service,
+            stream: tcp_stream.framed(Codec),
+            request_tasks: HashMap::new(),
+            notification_tasks: Vec::new(),
+        }
+    }
+
+    fn dispatch_message(&amp;mut self, msg: Message) {
+        match msg {
+            Message::Request(request) =&gt; {
+                let method = request.method.as_str();
+                let params = request.params;
+                let response = self.service.handle_request(method, &amp;params);
+                // store the future, so that we can poll it until it completes
+                self.request_tasks.insert(request.id, response);
+            }
+            Message::Notification(notification) =&gt; {
+                let method = notification.method.as_str();
+                let params = notification.params;
+                let outcome = self.service.handle_notification(method, &amp;params);
+                // store the future, so that we can poll it until it completes
+                self.notification_tasks.push(outcome);
+            }
+            Message::Response(_) =&gt; return,
+        }
+    }
+}
+
+#}</code></pre></pre>
+<p>It remains to poll the futures returned by our service until they complete.
+Futures returned by <code>handle_request()</code> return a <code>Response</code> that needs to be
+sent back the client. Futures returned by <code>handle_notification()</code> don't return
+anything, but it's important to poll them as well, to run them to completion.</p>
+<p>We'll create two separate methods to poll these futures:
+<code>Server::process_requests()</code> and <code>Server::process_notifications()</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+
+#fn main() {
+impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
+
+    // ...
+
+    fn process_notifications(&amp;mut self) {
+        // keep track of the futures that finished
+        let mut done = vec![];
+
+        for (idx, task) in self.notification_tasks.iter_mut().enumerate() {
+            match task.poll().unwrap() {
+                // the future finished
+                Async::Ready(_) =&gt; done.push(idx),
+                // the future did not finished yet
+                Async::NotReady =&gt; continue,
+            }
+        }
+
+        // stop tracking the futures that finished
+        for idx in done.iter().rev() { self.notification_tasks.remove(*idx); }
+    }
+
+    fn process_requests(&amp;mut self) {
+        // keep track of the futures that finished
+        let mut done = vec![];
+
+        for (id, task) in &amp;mut self.request_tasks {
+            match task.poll().unwrap() {
+                // this future finished. we send the response back to the client
+                Async::Ready(response) =&gt; {
+                    let msg = Message::Response(Response {
+                        id: *id,
+                        result: response.map(|v| v.into()).map_err(|e| e.into()),
+                    });
+                    done.push(*id);
+
+                    // send the response back to the client
+                    if !self.stream.start_send(msg).unwrap().is_ready() {
+                        panic!(&quot;the sink is full&quot;)
+                    }
+                }
+                // the future did not finished yet. We ignore it.
+                Async::NotReady =&gt; continue,
+            }
+        }
+
+        // stop tracking the futures that finished
+        for idx in done.iter_mut().rev() {
+            let _ = self.request_tasks.remove(idx);
+        }
+    }
+
+#}</code></pre></pre>
+<p>I think the comments make the code clear enough. Of course we need to call these methods in <code>poll()</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+
+#fn main() {
+impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
+    type Item = ();
+    type Error = io::Error;
+
+    fn poll(&amp;mut self) -&gt; Poll&lt;Self::Item, Self::Error&gt; {
+        loop {
+            match self.stream.poll().unwrap() {
+                Async::Ready(Some(msg)) =&gt; self.handle_msg(msg),
+                Async::Ready(None) =&gt; {
+                    return Ok(Async::Ready(()));
+                }
+                Async::NotReady =&gt; break,
+            }
+        }
+        self.process_notifications();
+        self.process_requests();
+        Ok(Async::NotReady)
+    }
+}
+
+#}</code></pre></pre>
+<p>We are almost done, but one subtility remains. If you noticed, when sending the
+response, we use <code>stream.start_send()</code>. The
+<a href="https://docs.rs/futures/0.1/futures/sink/trait.Sink.html#tymethod.start_send">documentation</a>
+explains that this is not enough to actually send the response. Internally, for
+performance reasons, the <code>Sink</code> may buffer the messages before sending them.
+With only <code>start_send()</code> we cannot be sure that the data wether has actually
+being written into the TCP socket, or wether the operation is pending.</p>
+<p>To make sure the data is sent, we need to tell the sink to flush its buffers
+with
+<a href="https://docs.rs/futures/0.1/futures/sink/trait.Sink.html#tymethod.poll_complete"><code>Sink::poll_complete()</code></a>.
+We could do this for each message, right after <code>start_send()</code>, but this would
+kind of defeat the purpose of buffering.  Instead, we'll flush after we
+processed all the requests:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
+    type Item = ();
+    type Error = io::Error;
+
+    fn poll(&amp;mut self) -&gt; Poll&lt;Self::Item, Self::Error&gt; {
+        loop {
+            match self.stream.poll().unwrap() {
+                Async::Ready(Some(msg)) =&gt; self.handle_msg(msg),
+                Async::Ready(None) =&gt; {
+                    return Ok(Async::Ready(()));
+                }
+                Async::NotReady =&gt; break,
+            }
+        }
+        self.process_notifications();
+        self.process_requests();
+        self.stream.poll_complete().unwrap();
+        Ok(Async::NotReady)
+    }
+}
+
+#}</code></pre></pre>
+<p>Finally, we could try to make users life easier by providing a function to run
+a server on a Tokio event loop. It's not mandatory, but it will also show how
+the code we just wrote can be used:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+pub fn serve&lt;B: ServiceBuilder&gt;(address: &amp;SocketAddr, service_builder: B) {
+    let mut core = Core::new().unwrap();
+    let handle = core.handle();
+    let listener = TcpListener::bind(address, &amp;handle).unwrap();
+    core.run(listener.incoming().for_each(|(stream, _address)| {
+        let service = service_builder.build();
+        let server = Server::new(service, stream);
+        handle.spawn(server.map_err(|_| ()));
+        Ok(())
+    })).unwrap()
+}
+
+#}</code></pre></pre>
+<p>A TCP listener creates a new service for each client that connects, and spawn a
+new <code>Server</code> instance on the event loop. Once the server is spawned, Tokio
+start's calling <code>poll()</code> and the server. This is kind of confusing, because our
+MessagePack-RPC server actually works by spawning multiple <code>Server</code> (one per
+client).</p>
+<a class="header" href="print.html#complete-code-7" id="complete-code-7"><h1>Complete code</h1></a>
+<a class="header" href="print.html#serverrs-1" id="serverrs-1"><h2>server.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::io;
+use std::collections::HashMap;
+use std::error::Error;
+use std::net::SocketAddr;
+
+use codec::Codec;
+use message::{Response, Message};
+
+use futures::{Async, Poll, Future, Stream, Sink, BoxFuture};
+use rmpv::Value;
+use tokio_core::net::{TcpStream, TcpListener};
+use tokio_core::reactor::Core;
+use tokio_io::AsyncRead;
+use tokio_io::codec::Framed;
+
+pub trait Service {
+    type Error: Error;
+    type T: Into&lt;Value&gt;;
+    type E: Into&lt;Value&gt;;
+
+    fn handle_request(
+        &amp;mut self,
+        method: &amp;str,
+        params: &amp;[Value],
+    ) -&gt; BoxFuture&lt;Result&lt;Self::T, Self::E&gt;, Self::Error&gt;;
+
+    fn handle_notification(&amp;mut self, method: &amp;str, params: &amp;[Value]) -&gt; BoxFuture&lt;(), Self::Error&gt;;
+}
+
+pub trait ServiceBuilder {
+    type Service: Service + 'static;
+
+    fn build(&amp;self) -&gt; Self::Service;
+}
+
+struct Server&lt;S: Service&gt; {
+    service: S,
+    stream: Framed&lt;TcpStream, Codec&gt;,
+    request_tasks: HashMap&lt;u32, BoxFuture&lt;Result&lt;S::T, S::E&gt;, S::Error&gt;&gt;,
+    notification_tasks: Vec&lt;BoxFuture&lt;(), S::Error&gt;&gt;,
+}
+
+impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
+    fn new(service: S, tcp_stream: TcpStream) -&gt; Self {
+        Server {
+            service: service,
+            stream: tcp_stream.framed(Codec),
+            request_tasks: HashMap::new(),
+            notification_tasks: Vec::new(),
+        }
+    }
+
+    fn dispatch_message(&amp;mut self, msg: Message) {
+        match msg {
+            Message::Request(request) =&gt; {
+                let method = request.method.as_str();
+                let params = request.params;
+                let response = self.service.handle_request(method, &amp;params);
+                self.request_tasks.insert(request.id, response);
+            }
+            Message::Notification(notification) =&gt; {
+                let method = notification.method.as_str();
+                let params = notification.params;
+                let outcome = self.service.handle_notification(method, &amp;params);
+                self.notification_tasks.push(outcome);
+            }
+            Message::Response(_) =&gt; {
+                return;
+            }
+        }
+    }
+
+    fn process_notifications(&amp;mut self) {
+        let mut done = vec![];
+        for (idx, task) in self.notification_tasks.iter_mut().enumerate() {
+            match task.poll().unwrap() {
+                Async::Ready(_) =&gt; done.push(idx),
+                Async::NotReady =&gt; continue,
+            }
+        }
+        for idx in done.iter().rev() {
+            self.notification_tasks.remove(*idx);
+        }
+    }
+
+    fn process_requests(&amp;mut self) {
+        let mut done = vec![];
+        for (id, task) in &amp;mut self.request_tasks {
+            match task.poll().unwrap() {
+                Async::Ready(response) =&gt; {
+                    let msg = Message::Response(Response {
+                        id: *id,
+                        result: response.map(|v| v.into()).map_err(|e| e.into()),
+                    });
+                    done.push(*id);
+                    if !self.stream.start_send(msg).unwrap().is_ready() {
+                        panic!(&quot;the sink is full&quot;)
+                    }
+                }
+                Async::NotReady =&gt; continue,
+            }
+        }
+
+        for idx in done.iter_mut().rev() {
+            let _ = self.request_tasks.remove(idx);
+        }
+    }
+}
+
+impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
+    type Item = ();
+    type Error = io::Error;
+
+    fn poll(&amp;mut self) -&gt; Poll&lt;Self::Item, Self::Error&gt; {
+        loop {
+            match self.stream.poll().unwrap() {
+                Async::Ready(Some(msg)) =&gt; self.dispatch_message(msg),
+                Async::Ready(None) =&gt; {
+                    return Ok(Async::Ready(()));
+                }
+                Async::NotReady =&gt; break,
+            }
+        }
+        self.process_notifications();
+        self.process_requests();
+        self.stream.poll_complete().unwrap();
+        Ok(Async::NotReady)
+    }
+}
+
+pub fn serve&lt;B: ServiceBuilder&gt;(address: &amp;SocketAddr, service_builder: B) {
+    let mut core = Core::new().unwrap();
+    let handle = core.handle();
+    let listener = TcpListener::bind(address, &amp;handle).unwrap();
+    core.run(listener.incoming().for_each(|(stream, _address)| {
+        let service = service_builder.build();
+        let server = Server::new(service, stream);
+        handle.spawn(server.map_err(|_| ()));
+        Ok(())
+    })).unwrap()
+}
+
+#}</code></pre></pre>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+
+                
+
+            </div>
+
+            
+
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

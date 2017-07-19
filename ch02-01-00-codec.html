@@ -1,0 +1,654 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Codec - </title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="ch01-00-introduction.html"><strong>1.</strong> Introduction</a></li><li><ul class="section"><li><a href="ch01-01-messagepack-rpc.html"><strong>1.1.</strong> MessagePack-RPC</a></li><li><a href="ch01-02-tokio.html"><strong>1.2.</strong> Tokio</a></li></ul></li><li><a href="ch02-00-first-implementation.html"><strong>2.</strong> First implementation</a></li><li><ul class="section"><li><a href="ch02-01-00-codec.html" class="active"><strong>2.1.</strong> Codec</a></li><li><ul class="section"><li><a href="ch02-01-01-codec-code.html"><strong>2.1.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-02-00-protocol.html"><strong>2.2.</strong> Protocol</a></li><li><ul class="section"><li><a href="ch02-02-01-protocol-code.html"><strong>2.2.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-03-00-service.html"><strong>2.3.</strong> Service</a></li><li><ul class="section"><li><a href="ch02-03-01-first-example.html"><strong>2.3.1.</strong> First example</a></li><li><a href="ch02-03-02-wrapping-the-server.html"><strong>2.3.2.</strong> Wrapping the server</a></li><li><a href="ch02-03-03-wrapping-the-client.html"><strong>2.3.3.</strong> Wrapping the client</a></li><li><a href="ch02-03-04-updated-example.html"><strong>2.3.4.</strong> Updated example</a></li></ul></li></ul></li><li><a href="ch03-00-second-implementation.html"><strong>3.</strong> Second implementation</a></li><li><ul class="section"><li><a href="ch03-01-00-reimplementing-the-server.html"><strong>3.1.</strong> Re-implementing the server</a></li><li><ul class="section"><li><a href="ch03-01-01-reimplementing-the-server-code.html"><strong>3.1.1.</strong> Complete code</a></li></ul></li></ul></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="ch02-01-00-codec.html#codec" id="codec"><h1>Codec</h1></a>
+<p>In this chapter, we'll implement a <code>Codec</code> that converts a stream of bytes into
+a stream of a messages.</p>
+<a class="header" href="ch02-01-00-codec.html#creating-a-new-project" id="creating-a-new-project"><h2>Creating a new project</h2></a>
+<p>Let's start by creating a new project (<code>cargo new --lib rmp-rpc-demo</code>), and
+adding a few dependencies in <code>Cargo.toml</code>:</p>
+<pre><code>[package]
+name = &quot;rmp-rpc-demo&quot;
+version = &quot;0.0.1&quot;
+authors = [&quot;You &lt;you@example.com&gt;&quot;]
+description = &quot;a msgpack-rpc client and server based on tokio&quot;
+
+[dependencies]
+bytes = &quot;0.4&quot;
+rmpv = &quot;0.4&quot;
+tokio-io = &quot;0.1&quot;
+</code></pre>
+<p>We'll split the crate in several modules:</p>
+<pre><code>.
+├── Cargo.toml
+├── LICENSE-MIT
+├── README.md
+└── src
+   ├── lib.rs
+   ├── client.rs
+   ├── codec.rs
+   ├── errors.rs
+   ├── message.rs
+   ├── protocol.rs
+   └── server.rs
+</code></pre>
+<p>Create the files: <code>touch src/{client.rs,codec.rs,errors.rs,message.rs,protocol.rs,server.rs}</code>. And in
+<code>src/lib.rs</code> we'll add the dependencies we'll need for this chapter, and
+declare our modules:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+extern crate bytes;
+extern crate rmpv;
+extern crate tokio_io;
+
+mod client;
+mod codec;
+mod errors;
+mod server;
+
+pub mod message;
+pub mod protocol;
+
+#}</code></pre></pre>
+<a class="header" href="ch02-01-00-codec.html#representing-messages" id="representing-messages"><h2>Representing messages</h2></a>
+<p>The first thing to do, if we want to convert a stream of bytes into a stream of
+messages is to implement a data structure that represents a MessagePack-RPC
+message.</p>
+<p>The <a href="https://github.com/msgpack-rpc/msgpack-rpc/blob/master/spec.md">MessagePack-RPC
+specifications</a>
+defines three type of messages: requests, notifications, and responses. Let's
+naively translate this to Rust. In <code>src/message.rs</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/message.rs
+
+// the specs defines a request as [type, msgid, method, params]
+pub struct Request {
+    // this field must be 0
+    pub type: u32,
+    pub id: u32,
+    pub method: String,
+    // this field is an &quot;array of arbitrary objects&quot;
+    pub params: Vec&lt;???&gt;,
+}
+
+// the specs defines a response as [type, msgid, method, params]
+pub struct Response {
+    // this field must be 1
+    pub type: u32,
+    pub id: u32,
+    pub error: Option&lt;u32&gt;,
+    // this field is a arbitrary object
+    pub result: ???,
+}
+
+pub struct Notification {
+    // this field must be 2
+    pub type: u32,
+    pub method: String,
+    // an array of arbitrary value
+    pub params: Vec&lt;???&gt;,
+}
+
+#}</code></pre></pre>
+<p>This can be improved in multiple ways:</p>
+<ul>
+<li>The spec mentions &quot;arbitrary values&quot;, but it's not clear how this translates
+to Rust (hence the <code>???</code>). Fortunately <code>rmpv</code> does have a type for &quot;arbitrary
+messagepack values&quot;:
+<a href="https://docs.rs/rmpv/0.4.0/rmpv/enum.Value.html"><code>Value</code></a>.</li>
+<li>The <code>type</code> field seems redundant. The rust type carries the same information
+than the MessagePack-RPC <code>type</code> field. We can get rid of it.</li>
+<li>The <code>Response</code> type could be improved: we have a <code>Result</code> type in Rust, we
+don't need the error field to represent a error. Let's make the <code>result</code>
+field a <code>Result</code>.</li>
+<li>We need <em>one</em> message type, not three. This can be solved with a <code>Message</code>
+enum.</li>
+</ul>
+<p>It becomes:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/message.rs
+
+use rmpv::Value;
+
+pub struct Request {
+    pub id: u32,
+    pub method: String,
+    pub params: Vec&lt;Value&gt;,
+}
+
+pub struct Response {
+    pub id: u32,
+    pub result: Result&lt;Value, Value&gt;,
+}
+
+pub struct Notification {
+    pub method: String,
+    pub params: Vec&lt;Value&gt;,
+}
+
+pub enum Message {
+    Request(Request),
+    Response(Response),
+    Notification(Notification),
+}
+
+#}</code></pre></pre>
+<a class="header" href="ch02-01-00-codec.html#codec-1" id="codec-1"><h2>Codec</h2></a>
+<p>We now need to create a <code>Codec</code>. A codec is a type that implements
+<a href="https://docs.rs/tokio-io/0.1.2/tokio_io/codec/trait.Decoder.html"><code>tokio_io::codec::Decoder</code></a>
+and
+<a href="https://docs.rs/tokio-io/0.1.2/tokio_io/codec/trait.Encoder.html"><code>tokio_io::codec::Encoder</code></a>.</p>
+<p>Here is the skeleton of the code, in <code>src/codec.rs</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/codec.rs
+
+use std::io;
+use tokio_io::codec::{Decoder, Encoder};
+use bytes::BytesMut;
+
+use message::Message;
+
+pub struct Codec;
+
+impl Decoder for Codec {
+    // We want the decoder to return Message items
+    type Item = Message;
+    type Error = io::Error;
+
+    fn decode(&amp;mut self, src: &amp;mut BytesMut) -&gt; io::Result&lt;Option&lt;Self::Item&gt;&gt; {
+        unimplemented!()
+    }
+}
+
+impl Encoder for Codec {
+    // We want the encoder to encode Message items
+    type Item = Message;
+    type Error = io::Error;
+
+    fn encode(&amp;mut self, msg: Self::Item, buf: &amp;mut BytesMut) -&gt; io::Result&lt;()&gt; {
+        unimplemented!()
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="ch02-01-00-codec.html#encoding" id="encoding"><h3>Encoding</h3></a>
+<p>Let's focus on the encoder first. We need to somehow turn a <code>Message</code> into a
+stream of bytes conform to the specs.
+<a href="https://docs.rs/rmpv/0.4.0/rmpv/encode/fn.write_value.html"><code>rmpv::encode::write_value()</code></a>
+looks promising: it converts a <code>Value</code> into a stream of bytes and write these
+bytes in a writer. All we have to do, is turn our <code>Message</code> into a <code>Value</code>. We
+can implement this directly on <code>Message</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/message.rs
+
+use std::convert::From;
+use rmpv::{Value, Integer, Utf8String};
+
+impl Message {
+    // Turn the message into a MessagePack value
+    fn as_value(&amp;self) -&gt; Value {
+        match *self {
+            Message::Request(Request { id, ref method, ref params}) =&gt; {
+                Value::Array(vec![
+                    Value::Integer(Integer::from(0)),
+                    Value::Integer(Integer::from(id)),
+                    Value::String(Utf8String::from(method.as_str())),
+                    Value::Array(params.clone()),
+                ])
+            }
+            Message::Response(Response { id, ref result }) =&gt; {
+                let (error, result) = match *result {
+                    Ok(ref result) =&gt; (Value::Nil, result.to_owned()),
+                    Err(ref err) =&gt; (err.to_owned(), Value::Nil),
+                };
+                Value::Array(vec![
+                    Value::Integer(Integer::from(1)),
+                    Value::Integer(Integer::from(id)),
+                    error,
+                    result,
+                ])
+            }
+            Message::Notification(Notification {ref method, ref params}) =&gt; {
+                Value::Array(vec![
+                    Value::Integer(Integer::from(2)),
+                    Value::String(Utf8String::from(method.as_str())),
+                    Value::Array(params.to_owned()),
+                ])
+            }
+        }
+    }
+
+#}</code></pre></pre>
+<p>Our <code>Encoder</code> implementation becomes straightforward:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+impl Encoder for Codec {
+    type Item = Message;
+    type Error = io::Error;
+
+    fn encode(&amp;mut self, msg: Self::Item, buf: &amp;mut BytesMut) -&gt; io::Result&lt;()&gt; {
+        Ok(rmpv::encode::write_value(&amp;mut buf.writer(), &amp;msg.as_value())?)
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="ch02-01-00-codec.html#decoding" id="decoding"><h3>Decoding</h3></a>
+<p>The decoder is slightly more complicated.</p>
+<a class="header" href="ch02-01-00-codec.html#a-naive-decoder" id="a-naive-decoder"><h4>A naive decoder</h4></a>
+<p>We'll start by implementing <code>decode</code> on <code>Message</code> using
+<a href="https://docs.rs/rmpv/0.4.0/rmpv/decode/index.html"><code>rmpv::decode</code></a>. Since it's
+a little bit long, we'll split it in multiple methods: <code>Message::decode</code> only
+decodes the message type, and then delegates the rest to <code>Request::decode</code>,
+<code>Response::decode</code> and <code>Notification::decode</code>. We'll only show
+<code>Request::decode</code> to keep the snippets small.</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/message.rs
+
+use rmpv::decode;
+
+// ...
+
+impl Message {
+    
+    // ...
+
+    pub fn decode&lt;R: Read&gt;(rd: &amp;mut R) -&gt; Message {
+        let msg = decode::value::read_value(rd)?;
+        if let Value::Array(ref array) = msg {
+            if array.len() &lt; 3 {
+                // notification are the shortest message and have 3 items
+                panic!(&quot;Message too short&quot;);
+            }
+            if let Value::Integer(msg_type) = array[0] {
+                match msg_type.as_u64() {
+                    Some(0) =&gt; Message::Request(Message::decode(array)?),
+                    Some(1) =&gt; Message::Response(Message::decode(array)?),
+                    Some(2) =&gt; Message::Notification(Message::decode(array)?),
+                    _ =&gt; panic!(&quot;Invalid message type);
+                }
+            } else {
+                panic!(&quot;Could not decode message type);
+            }
+        } else {
+            panic!(&quot;Value is not an array&quot;);
+        }
+    }
+}
+
+impl Request {
+    fn decode(array: &amp;[Value]) -&gt; Self {
+        if array.len() &lt; 4 { panic!(&quot;Too short for a request&quot;) ; }
+
+        let id = if let Value::Integer(id) = array[1] {
+            id.as_u64().and_then(|id| Some(id as u32)).unwrap();
+        } else {
+            panic!(&quot;Cannot decode request ID&quot;);
+        };
+
+        let method = if let Value::String(ref method) = array[2] {
+            method.as_str().and_then(|s| Some(s.to_string())).unwrap();
+        } else {
+            panic!(&quot;Cannot decode request method&quot;);
+        };
+
+        let params = if let Value::Array(ref params) = array[3] {
+            params.clone()
+        } else {
+            panic!(&quot;Cannot decode request parameters&quot;);
+        };
+        Request {id: id, method: method, params: params}
+    }
+}
+
+// etc. There is a similar decode() implementation for the Notification and Response types.
+
+#}</code></pre></pre>
+<p>A <em>very</em> naive decoder implementation could be:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+impl Decoder for Codec {
+    type Item = Message;
+    type Error = io::Error;
+
+    fn decode(&amp;mut self, src: &amp;mut BytesMut) -&gt; io::Result&lt;Option&lt;Self::Item&gt;&gt; {
+        let mut buf = io::Cursor::new(&amp;src);
+        Ok(Message::decode(&amp;mut buf))
+    }
+}
+
+#}</code></pre></pre>
+<p>Unfortunately, this won't work. It won't because we have no way to know if
+there are enough bytes to read in the <code>BytesMut</code> buffer to decode a full
+message. When tokio choses to call <code>decode</code>, the buffer may even be empty. And
+given our <code>Message::decode</code> implementation, this will panic.</p>
+<a class="header" href="ch02-01-00-codec.html#adding-error-handling" id="adding-error-handling"><h4>Adding error handling</h4></a>
+<p>If there are not enough bytes to read, we need to let tokio know that we need
+more bytes. Tokio we'll re-call the method later, when there is more to read.
+We do so by returning <code>Ok(None)</code>. But how do we know we need more bytes? Error
+handling! <code>Message::decode</code> could return a specific error when it fails to
+decode a message because it's incomplete. We can create a new <code>DecodeError</code>
+error type in <code>src/errors.rs</code>:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/errors.rs
+
+use std::{error, fmt, io};
+use rmpv::decode;
+
+#[derive(Debug)]
+pub enum DecodeError {
+    // Some bytes are missing to decode a full msgpack value
+    Truncated,
+
+    // A byte sequence could not be decoded as a msgpack value, or this value is not a valid
+    // msgpack-rpc message.
+    Invalid,
+
+    // An unknown IO error while reading a byte sequence
+    UnknownIo(io::Error),
+}
+
+impl fmt::Display for DecodeError {
+    fn fmt(&amp;self, f: &amp;mut fmt::Formatter) -&gt; Result&lt;(), fmt::Error&gt; {
+        error::Error::description(self).fmt(f)
+    }
+}
+
+impl error::Error for DecodeError {
+    fn description(&amp;self) -&gt; &amp;str {
+        match *self {
+            DecodeError::Truncated =&gt; &quot;could not read enough bytes to decode a complete message&quot;,
+            DecodeError::UnknownIo(_) =&gt; &quot;Unknown IO error while decoding a message&quot;,
+            DecodeError::Invalid =&gt; &quot;the byte sequence is not a valid msgpack-rpc message&quot;,
+        }
+    }
+
+    fn cause(&amp;self) -&gt; Option&lt;&amp;error::Error&gt; {
+        match *self {
+            DecodeError::UnknownIo(ref e) =&gt; Some(e),
+            _ =&gt; None,
+        }
+    }
+}
+
+impl From&lt;io::Error&gt; for DecodeError {
+    fn from(err: io::Error) -&gt; DecodeError {
+        match err.kind() {
+
+            // If this occurs, it means `rmpv` was unable to read enough bytes to decode a full
+            // MessagePack value, so we convert this error in a DecodeError::Truncated
+            io::ErrorKind::UnexpectedEof =&gt; DecodeError::Truncated,
+
+            io::ErrorKind::Other =&gt; {
+                if let Some(cause) = err.get_ref().unwrap().cause() {
+                    if cause.description() == &quot;type mismatch&quot; {
+                        return DecodeError::Invalid;
+                    }
+                }
+                DecodeError::UnknownIo(err)
+            }
+
+            _ =&gt; DecodeError::UnknownIo(err),
+
+        }
+    }
+}
+
+impl From&lt;decode::Error&gt; for DecodeError {
+    fn from(err: decode::Error) -&gt; DecodeError {
+        match err {
+            decode::Error::InvalidMarkerRead(io_err) |
+            decode::Error::InvalidDataRead(io_err) =&gt; From::from(io_err),
+        }
+    }
+}
+
+#}</code></pre></pre>
+<p>With error handling, we can clean up our <code>decode</code> methods:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+// src/message.rs
+
+impl Message {
+    pub fn decode&lt;R: Read&gt;(rd: &amp;mut R) -&gt; Result&lt;Message, DecodeError&gt; {
+        let msg = decode::value::read_value(rd)?;
+        if let Value::Array(ref array) = msg {
+            if array.len() &lt; 3 { return Err(DecodeError::Invalid); }
+            if let Value::Integer(msg_type) = array[0] {
+                match msg_type.as_u64() {
+                    Some(0) =&gt; return Ok(Message::Request(Request::decode(array)?)),
+                    Some(1) =&gt; return Ok(Message::Response(Response::decode(array)?)),
+                    Some(2) =&gt; return Ok(Message::Notification(Notification::decode(array)?)),
+                    _ =&gt; return Err(DecodeError::Invalid),
+                }
+            } else {
+                return Err(DecodeError::Invalid);
+            }
+        } else {
+            return Err(DecodeError::Invalid);
+        }
+    }
+    // ...
+}
+ 
+// We only show the implementation for Request. It is similar for Notification
+// and Response
+
+impl Request {
+    fn decode(array: &amp;[Value]) -&gt; Result&lt;Self, DecodeError&gt; {
+        if array.len() &lt; 4 { return Err(DecodeError::Invalid); }
+
+        let id = if let Value::Integer(id) = array[1] {
+            id.as_u64().and_then(|id| Some(id as u32)).ok_or(DecodeError::Invalid)?
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        let method = if let Value::String(ref method) = array[2] {
+            method.as_str().and_then(|s| Some(s.to_string())).ok_or(DecodeError::Invalid)?
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        let params = if let Value::Array(ref params) = array[3] {
+            params.clone()
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        Ok(Request {id: id, method: method, params: params})
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="ch02-01-00-codec.html#final-decoder" id="final-decoder"><h4>Final decoder</h4></a>
+<p>The actual <code>Decoder</code> implementation now becomes:</p>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+impl Decoder for Codec {
+    type Item = Message;
+    type Error = io::Error;
+
+    fn decode(&amp;mut self, src: &amp;mut BytesMut) -&gt; io::Result&lt;Option&lt;Self::Item&gt;&gt; {
+        let res: Result&lt;Option&lt;Self::Item&gt;, Self::Error&gt;;
+
+        // We keep track of how many bytes we read
+        let position = {
+
+            // We wrap the buffer into a Cursor that counts how many bytes we read
+            let mut buf = io::Cursor::new(&amp;src);
+
+            loop {
+                // Try to decode a message
+                match Message::decode(&amp;mut buf) {
+                    // We got a message, so we break out of the loop
+                    Ok(message) =&gt; {
+                        res = Ok(Some(message));
+                        break;
+                    }
+                    Err(err) =&gt; {
+                        match err {
+                            // Not enough bytes to decode a full message. Return Ok(None) to tell
+                            // tokio to retry later when there is more to read
+                            DecodeError::Truncated =&gt; return Ok(None),
+                            // We decoded a MessagePack value, but it's not a valid message,
+                            // so we go on, and try to read another value.
+                            DecodeError::Invalid =&gt; continue,
+                            // Something went wrong, but we don't know why.
+                            // It's safer to return an error
+                            DecodeError::UnknownIo(io_err) =&gt; {
+                                res = Err(io_err);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            buf.position() as usize
+        };
+        // Remove the bytes we read from the buffer
+        let _ = src.split_to(position);
+        // Return the message (or the error if any)
+        res
+    }
+}
+
+#}</code></pre></pre>
+<p>I hope the comments are detailed enough to understand what happens. To sum up,
+the decoder is called regularly by tokio, each time with three possible
+outcomes:</p>
+<ul>
+<li>We are able to read a message =&gt; return <code>Ok(message)</code> and remove these bytes
+from the buffer.</li>
+<li>There are not enough byte to read a message =&gt; return <code>Ok(None)</code> to tell
+tokio to retry when there is more to read, and leave the buffer intact.</li>
+<li>An error occurs:
+<ul>
+<li>An invalid MessagePack value is read =&gt; try to read the next one</li>
+<li>An unknown io error occurs =&gt; return <code>Err(the_error)</code></li>
+</ul>
+</li>
+</ul>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="ch02-00-first-implementation.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="ch02-01-01-codec-code.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="ch02-00-first-implementation.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="ch02-01-01-codec-code.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

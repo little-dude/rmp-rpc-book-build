@@ -1,0 +1,258 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Complete code - </title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="ch01-00-introduction.html"><strong>1.</strong> Introduction</a></li><li><ul class="section"><li><a href="ch01-01-messagepack-rpc.html"><strong>1.1.</strong> MessagePack-RPC</a></li><li><a href="ch01-02-tokio.html"><strong>1.2.</strong> Tokio</a></li></ul></li><li><a href="ch02-00-first-implementation.html"><strong>2.</strong> First implementation</a></li><li><ul class="section"><li><a href="ch02-01-00-codec.html"><strong>2.1.</strong> Codec</a></li><li><ul class="section"><li><a href="ch02-01-01-codec-code.html"><strong>2.1.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-02-00-protocol.html"><strong>2.2.</strong> Protocol</a></li><li><ul class="section"><li><a href="ch02-02-01-protocol-code.html" class="active"><strong>2.2.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-03-00-service.html"><strong>2.3.</strong> Service</a></li><li><ul class="section"><li><a href="ch02-03-01-first-example.html"><strong>2.3.1.</strong> First example</a></li><li><a href="ch02-03-02-wrapping-the-server.html"><strong>2.3.2.</strong> Wrapping the server</a></li><li><a href="ch02-03-03-wrapping-the-client.html"><strong>2.3.3.</strong> Wrapping the client</a></li><li><a href="ch02-03-04-updated-example.html"><strong>2.3.4.</strong> Updated example</a></li></ul></li></ul></li><li><a href="ch03-00-second-implementation.html"><strong>3.</strong> Second implementation</a></li><li><ul class="section"><li><a href="ch03-01-00-reimplementing-the-server.html"><strong>3.1.</strong> Re-implementing the server</a></li><li><ul class="section"><li><a href="ch03-01-01-reimplementing-the-server-code.html"><strong>3.1.1.</strong> Complete code</a></li></ul></li></ul></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="ch02-02-01-protocol-code.html#complete-code" id="complete-code"><h1>Complete code</h1></a>
+<a class="header" href="ch02-02-01-protocol-code.html#cargotoml" id="cargotoml"><h2>Cargo.toml</h2></a>
+<pre><code>[package]
+name = &quot;rmp-rpc-demo&quot;
+version = &quot;0.0.1&quot;
+authors = [&quot;You &lt;you@example.com&gt;&quot;]
+description = &quot;a msgpack-rpc client and server based on tokio&quot;
+
+[dependencies]
+bytes = &quot;0.4&quot;
+rmpv = &quot;0.4&quot;
+tokio-io = &quot;0.1&quot;
+tokio-proto = &quot;0.1&quot;
+</code></pre>
+<a class="header" href="ch02-02-01-protocol-code.html#librs" id="librs"><h2>lib.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+extern crate bytes;
+extern crate rmpv;
+extern crate tokio_io;
+extern crate tokio_proto;
+
+mod client;
+mod codec;
+mod errors;
+mod server;
+
+pub mod message;
+pub mod protocol;
+
+#}</code></pre></pre>
+<a class="header" href="ch02-02-01-protocol-code.html#codecrs" id="codecrs"><h2>codec.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::io;
+
+use bytes::{BytesMut, BufMut};
+use rmpv;
+use tokio_io::codec::{Encoder, Decoder};
+
+use errors::DecodeError;
+use message::{Message, Request, Response};
+
+pub struct Codec;
+
+impl Decoder for Codec {
+    type Item = (u64, Message);
+    type Error = io::Error;
+
+    fn decode(&amp;mut self, src: &amp;mut BytesMut) -&gt; io::Result&lt;Option&lt;Self::Item&gt;&gt; {
+        let res: Result&lt;Option&lt;Self::Item&gt;, Self::Error&gt;;
+        let position = {
+            let mut buf = io::Cursor::new(&amp;src);
+            loop {
+                match Message::decode(&amp;mut buf) {
+                    Ok(message) =&gt; {
+                        res = match message {
+                            Message::Request(Request { id, .. }) | Message::Response(Response { id, .. }) =&gt; {
+                                Ok(Some((id as u64, message)))
+                            },
+                            Message::Notification(_) =&gt; panic!(&quot;Notifications not supported&quot;),
+                        };
+                        break;
+                    }
+                    Err(err) =&gt; {
+                        match err {
+                            DecodeError::Truncated =&gt; return Ok(None),
+                            DecodeError::Invalid =&gt; continue,
+                            DecodeError::UnknownIo(io_err) =&gt; {
+                                res = Err(io_err);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            buf.position() as usize
+        };
+        let _ = src.split_to(position);
+        res
+    }
+}
+
+impl Encoder for Codec {
+    type Item = (u64, Message);
+    type Error = io::Error;
+
+    fn encode(&amp;mut self, item: Self::Item, buf: &amp;mut BytesMut) -&gt; io::Result&lt;()&gt; {
+        let (id, mut message) = item;
+        match message {
+            Message::Response(ref mut response) =&gt; {
+                response.id = id as u32;
+            }
+            Message::Request(ref mut request) =&gt; {
+                request.id = id as u32;
+            }
+            Message::Notification(_) =&gt; panic!(&quot;Notifications not supported&quot;),
+        }
+        Ok(rmpv::encode::write_value(&amp;mut buf.writer(), &amp;message.as_value())?)
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="ch02-02-01-protocol-code.html#protocolrs" id="protocolrs"><h2>protocol.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::io;
+
+use tokio_proto::multiplex::{ClientProto, ServerProto};
+use tokio_io::{AsyncRead, AsyncWrite};
+use tokio_io::codec::Framed;
+
+use message::Message;
+use codec::Codec;
+
+pub struct Protocol;
+
+impl&lt;T: AsyncRead + AsyncWrite + 'static&gt; ServerProto&lt;T&gt; for Protocol {
+    type Transport = Framed&lt;T, Codec&gt;;
+    type Request = Message;
+    type Response = Message;
+    type BindTransport = Result&lt;Self::Transport, io::Error&gt;;
+    fn bind_transport(&amp;self, io: T) -&gt; Self::BindTransport {
+        Ok(io.framed(Codec))
+    }
+}
+
+impl&lt;T: AsyncRead + AsyncWrite + 'static&gt; ClientProto&lt;T&gt; for Protocol {
+    type Request = Message;
+    type Response = Message;
+    type Transport = Framed&lt;T, Codec&gt;;
+    type BindTransport = Result&lt;Self::Transport, io::Error&gt;;
+    fn bind_transport(&amp;self, io: T) -&gt; Self::BindTransport {
+        Ok(io.framed(Codec))
+    }
+}
+
+#}</code></pre></pre>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="ch02-02-00-protocol.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="ch02-03-00-service.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="ch02-02-00-protocol.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="ch02-03-00-service.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

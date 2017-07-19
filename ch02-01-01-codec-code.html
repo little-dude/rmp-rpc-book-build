@@ -1,0 +1,485 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Complete code - </title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li><a href="ch01-00-introduction.html"><strong>1.</strong> Introduction</a></li><li><ul class="section"><li><a href="ch01-01-messagepack-rpc.html"><strong>1.1.</strong> MessagePack-RPC</a></li><li><a href="ch01-02-tokio.html"><strong>1.2.</strong> Tokio</a></li></ul></li><li><a href="ch02-00-first-implementation.html"><strong>2.</strong> First implementation</a></li><li><ul class="section"><li><a href="ch02-01-00-codec.html"><strong>2.1.</strong> Codec</a></li><li><ul class="section"><li><a href="ch02-01-01-codec-code.html" class="active"><strong>2.1.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-02-00-protocol.html"><strong>2.2.</strong> Protocol</a></li><li><ul class="section"><li><a href="ch02-02-01-protocol-code.html"><strong>2.2.1.</strong> Complete code</a></li></ul></li><li><a href="ch02-03-00-service.html"><strong>2.3.</strong> Service</a></li><li><ul class="section"><li><a href="ch02-03-01-first-example.html"><strong>2.3.1.</strong> First example</a></li><li><a href="ch02-03-02-wrapping-the-server.html"><strong>2.3.2.</strong> Wrapping the server</a></li><li><a href="ch02-03-03-wrapping-the-client.html"><strong>2.3.3.</strong> Wrapping the client</a></li><li><a href="ch02-03-04-updated-example.html"><strong>2.3.4.</strong> Updated example</a></li></ul></li></ul></li><li><a href="ch03-00-second-implementation.html"><strong>3.</strong> Second implementation</a></li><li><ul class="section"><li><a href="ch03-01-00-reimplementing-the-server.html"><strong>3.1.</strong> Re-implementing the server</a></li><li><ul class="section"><li><a href="ch03-01-01-reimplementing-the-server-code.html"><strong>3.1.1.</strong> Complete code</a></li></ul></li></ul></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="ch02-01-01-codec-code.html#complete-code" id="complete-code"><h1>Complete code</h1></a>
+<a class="header" href="ch02-01-01-codec-code.html#cargotoml" id="cargotoml"><h2>Cargo.toml</h2></a>
+<pre><code>[package]
+name = &quot;rmp-rpc-demo&quot;
+version = &quot;0.0.1&quot;
+authors = [&quot;You &lt;you@example.com&gt;&quot;]
+description = &quot;a msgpack-rpc client and server based on tokio&quot;
+
+[dependencies]
+bytes = &quot;0.4&quot;
+rmpv = &quot;0.4&quot;
+tokio-io = &quot;0.1&quot;
+tokio-proto = &quot;0.1&quot;
+</code></pre>
+<a class="header" href="ch02-01-01-codec-code.html#librs" id="librs"><h2>lib.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+extern crate bytes;
+extern crate rmpv;
+extern crate tokio_io;
+
+mod client;
+mod codec;
+mod errors;
+mod server;
+
+pub mod message;
+pub mod protocol;
+
+#}</code></pre></pre>
+<a class="header" href="ch02-01-01-codec-code.html#messagers" id="messagers"><h2>message.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::convert::From;
+use std::io::Read;
+
+use errors::*;
+use rmpv::{Value, Integer, Utf8String, decode};
+
+#[derive(PartialEq, Clone, Debug)]
+pub enum Message {
+    Request(Request),
+    Response(Response),
+    Notification(Notification),
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct Request {
+    pub id: u32,
+    pub method: String,
+    pub params: Vec&lt;Value&gt;,
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct Response {
+    pub id: u32,
+    pub result: Result&lt;Value, Value&gt;,
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct Notification {
+    pub method: String,
+    pub params: Vec&lt;Value&gt;,
+}
+
+const REQUEST_MESSAGE: u64 = 0;
+const RESPONSE_MESSAGE: u64 = 1;
+const NOTIFICATION_MESSAGE: u64 = 2;
+
+impl Message {
+    pub fn decode&lt;R&gt;(rd: &amp;mut R) -&gt; Result&lt;Message, DecodeError&gt;
+    where
+        R: Read,
+    {
+        let msg = decode::value::read_value(rd)?;
+        if let Value::Array(ref array) = msg {
+            if array.len() &lt; 3 {
+                // notification are the shortest message and have 3 items
+                return Err(DecodeError::Invalid);
+            }
+            if let Value::Integer(msg_type) = array[0] {
+                match msg_type.as_u64() {
+                    Some(REQUEST_MESSAGE) =&gt; {
+                        return Ok(Message::Request(Request::decode(array)?));
+                    }
+                    Some(RESPONSE_MESSAGE) =&gt; {
+                        return Ok(Message::Response(Response::decode(array)?));
+                    }
+                    Some(NOTIFICATION_MESSAGE) =&gt; {
+                        return Ok(Message::Notification(Notification::decode(array)?));
+                    }
+                    _ =&gt; {
+                        return Err(DecodeError::Invalid);
+                    }
+                }
+            } else {
+                return Err(DecodeError::Invalid);
+            }
+        } else {
+            return Err(DecodeError::Invalid);
+        }
+    }
+
+    pub fn as_value(&amp;self) -&gt; Value {
+        match *self {
+            Message::Request(Request {
+                id,
+                ref method,
+                ref params,
+            }) =&gt; {
+                Value::Array(vec![
+                    Value::Integer(Integer::from(REQUEST_MESSAGE)),
+                    Value::Integer(Integer::from(id)),
+                    Value::String(Utf8String::from(method.as_str())),
+                    Value::Array(params.clone()),
+                ])
+            }
+            Message::Response(Response { id, ref result }) =&gt; {
+                let (error, result) = match *result {
+                    Ok(ref result) =&gt; (Value::Nil, result.to_owned()),
+                    Err(ref err) =&gt; (err.to_owned(), Value::Nil),
+                };
+                Value::Array(vec![
+                    Value::Integer(Integer::from(RESPONSE_MESSAGE)),
+                    Value::Integer(Integer::from(id)),
+                    error,
+                    result,
+                ])
+            }
+            Message::Notification(Notification {
+                ref method,
+                ref params,
+            }) =&gt; {
+                Value::Array(vec![
+                    Value::Integer(Integer::from(NOTIFICATION_MESSAGE)),
+                    Value::String(Utf8String::from(method.as_str())),
+                    Value::Array(params.to_owned()),
+                ])
+            }
+        }
+    }
+}
+
+impl Notification {
+    fn decode(array: &amp;[Value]) -&gt; Result&lt;Self, DecodeError&gt; {
+        if array.len() &lt; 3 {
+            return Err(DecodeError::Invalid);
+        }
+
+        let method = if let Value::String(ref method) = array[1] {
+            method
+                .as_str()
+                .and_then(|s| Some(s.to_string()))
+                .ok_or(DecodeError::Invalid)?
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        let params = if let Value::Array(ref params) = array[2] {
+            params.clone()
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        Ok(Notification {
+            method: method,
+            params: params,
+        })
+    }
+}
+
+impl Request {
+    fn decode(array: &amp;[Value]) -&gt; Result&lt;Self, DecodeError&gt; {
+        if array.len() &lt; 4 {
+            return Err(DecodeError::Invalid);
+        }
+
+        let id = if let Value::Integer(id) = array[1] {
+            id.as_u64()
+                .and_then(|id| Some(id as u32))
+                .ok_or(DecodeError::Invalid)?
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        let method = if let Value::String(ref method) = array[2] {
+            method
+                .as_str()
+                .and_then(|s| Some(s.to_string()))
+                .ok_or(DecodeError::Invalid)?
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        let params = if let Value::Array(ref params) = array[3] {
+            params.clone()
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        Ok(Request {
+            id: id,
+            method: method,
+            params: params,
+        })
+    }
+}
+
+impl Response {
+    fn decode(array: &amp;[Value]) -&gt; Result&lt;Self, DecodeError&gt; {
+        if array.len() &lt; 2 {
+            return Err(DecodeError::Invalid);
+        }
+
+        let id = if let Value::Integer(id) = array[1] {
+            id.as_u64()
+                .and_then(|id| Some(id as u32))
+                .ok_or(DecodeError::Invalid)?
+        } else {
+            return Err(DecodeError::Invalid);
+        };
+
+        match array[2] {
+            Value::Nil =&gt; {
+                Ok(Response {
+                    id: id,
+                    result: Ok(array[3].clone()),
+                })
+            }
+            ref error =&gt; {
+                Ok(Response {
+                    id: id,
+                    result: Err(error.clone()),
+                })
+            }
+        }
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="ch02-01-01-codec-code.html#codecrs" id="codecrs"><h2>codec.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::io;
+
+use bytes::{BytesMut, BufMut};
+use rmpv;
+use tokio_io::codec::{Encoder, Decoder};
+
+use errors::DecodeError;
+use message::Message;
+
+pub struct Codec;
+
+impl Decoder for Codec {
+    type Item = Message;
+    type Error = io::Error;
+
+    fn decode(&amp;mut self, src: &amp;mut BytesMut) -&gt; io::Result&lt;Option&lt;Self::Item&gt;&gt; {
+        let res: Result&lt;Option&lt;Self::Item&gt;, Self::Error&gt;;
+        let position = {
+            let mut buf = io::Cursor::new(&amp;src);
+            loop {
+                match Message::decode(&amp;mut buf) {
+                    Ok(message) =&gt; {
+                        res = Ok(Some(message));
+                        break;
+                    }
+                    Err(err) =&gt; {
+                        match err {
+                            DecodeError::Truncated =&gt; return Ok(None),
+                            DecodeError::Invalid =&gt; continue,
+                            DecodeError::UnknownIo(io_err) =&gt; {
+                                res = Err(io_err);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            buf.position() as usize
+        };
+        let _ = src.split_to(position);
+        res
+    }
+}
+
+impl Encoder for Codec {
+    type Item = Message;
+    type Error = io::Error;
+
+    fn encode(&amp;mut self, msg: Self::Item, buf: &amp;mut BytesMut) -&gt; io::Result&lt;()&gt; {
+        Ok(rmpv::encode::write_value(
+            &amp;mut buf.writer(),
+            &amp;msg.as_value(),
+        )?)
+    }
+}
+
+#}</code></pre></pre>
+<a class="header" href="ch02-01-01-codec-code.html#errorsrs" id="errorsrs"><h2>errors.rs</h2></a>
+<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+#fn main() {
+use std::{error, fmt, io};
+
+use rmpv::decode;
+
+#[derive(Debug)]
+pub enum DecodeError {
+    Truncated,
+    Invalid,
+    UnknownIo(io::Error),
+}
+
+impl fmt::Display for DecodeError {
+    fn fmt(&amp;self, f: &amp;mut fmt::Formatter) -&gt; Result&lt;(), fmt::Error&gt; {
+        error::Error::description(self).fmt(f)
+    }
+}
+
+impl error::Error for DecodeError {
+    fn description(&amp;self) -&gt; &amp;str {
+        match *self {
+            DecodeError::Truncated =&gt; &quot;could not read enough bytes to decode a complete message&quot;,
+            DecodeError::UnknownIo(_) =&gt; &quot;Unknown IO error while decoding a message&quot;,
+            DecodeError::Invalid =&gt; &quot;the byte sequence is not a valid msgpack-rpc message&quot;,
+        }
+    }
+
+    fn cause(&amp;self) -&gt; Option&lt;&amp;error::Error&gt; {
+        match *self {
+            DecodeError::UnknownIo(ref e) =&gt; Some(e),
+            _ =&gt; None,
+        }
+    }
+}
+
+impl From&lt;io::Error&gt; for DecodeError {
+    fn from(err: io::Error) -&gt; DecodeError {
+        match err.kind() {
+            io::ErrorKind::UnexpectedEof =&gt; DecodeError::Truncated,
+            io::ErrorKind::Other =&gt; {
+                if let Some(cause) = err.get_ref().unwrap().cause() {
+                    if cause.description() == &quot;type mismatch&quot; {
+                        return DecodeError::Invalid;
+                    }
+                }
+                DecodeError::UnknownIo(err)
+            }
+            _ =&gt; DecodeError::UnknownIo(err),
+
+        }
+    }
+}
+
+impl From&lt;decode::Error&gt; for DecodeError {
+    fn from(err: decode::Error) -&gt; DecodeError {
+        match err {
+            decode::Error::InvalidMarkerRead(io_err) |
+            decode::Error::InvalidDataRead(io_err) =&gt; From::from(io_err),
+        }
+    }
+}
+
+#}</code></pre></pre>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="ch02-01-00-codec.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="ch02-02-00-protocol.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="ch02-01-00-codec.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="ch02-02-00-protocol.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>
