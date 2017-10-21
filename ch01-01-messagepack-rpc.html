@@ -20,9 +20,20 @@
 
         <link rel="stylesheet" href="highlight.css">
         <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
-        <!-- MathJax -->
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
 
         <!-- Fetch JQuery from CDN but have a local fallback -->
         <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -31,18 +42,25 @@
                 document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
             }
         </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+        <!-- Custom JS script -->
+        
+
     </head>
     <body class="light">
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
-            var theme = localStorage.getItem('theme');
-            if (theme == null) { theme = 'light'; }
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
             $('body').removeClass().addClass(theme);
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script type="text/javascript">
-            var sidebar = localStorage.getItem('sidebar');
+            var sidebar = store.get('mdbook-sidebar');
             if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
             else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
         </script>
@@ -53,7 +71,7 @@
 
         <div id="page-wrapper" class="page-wrapper">
 
-            <div class="page">
+            <div class="page" tabindex="-1">
                 <div id="menu-bar" class="menu-bar">
                     <div class="left-buttons">
                         <i id="sidebar-toggle" class="fa fa-bars"></i>
@@ -63,7 +81,9 @@
                     <h1 class="menu-title"></h1>
 
                     <div class="right-buttons">
-                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -143,9 +163,9 @@ Vec&lt;u32&gt; -----------&gt; &quot;[1,2,3]&quot; -----------&gt; [1, 2, 3]
 <p>In the context of Rust we can say that a serialization format defines how to
 represent a <code>struct</code> as a stream of bytes.  This is what
 <a href="http://serde.rs/">serde</a> does.</p>
-<p>The specificity of <strong>MessagePack</strong> is that it's similar to JSON, but is more
-compact, which makes it faster and lighter to send over the network for
-example. To quote <a href="msgpack.org">msgpack.org</a>, &quot;it's like JSON, but fast and
+<p>The nice thing about <strong>MessagePack</strong> is that it's similar to JSON, but is more
+compact, which makes it faster and lighter to send over the network.
+To quote <a href="msgpack.org">msgpack.org</a>, &quot;it's like JSON, but fast and
 small&quot;. You can find the <a href="https://github.com/msgpack/msgpack/blob/master/spec.md">specifications on
 github</a>. In the Rust
 ecosystem, the main implementation of MessagePack is
@@ -160,26 +180,26 @@ messages. It is very similar to the JSON-RPC protocol described above:</p>
 <li>requests must be answered with a response that carries the same ID</li>
 <li>notifications must not be answered</li>
 </ul>
-<p>The main differences with JSON-RPC are:</p>
+<p>The main differences from JSON-RPC are:</p>
 <ul>
 <li>it uses MessagePack instead of JSON</li>
 <li>messages don't have a &quot;version&quot; field</li>
 <li>message have a &quot;type&quot; field that tell wether they are notifications, requests or responses.</li>
 </ul>
-<p>There are other minor differences but we don't intend to give an exhaustive
+<p>There are other minor differences, but we don't intend to give an exhaustive
 list in this document.</p>
 
                 </div>
 
                 <!-- Mobile navigation buttons -->
                 
-                    <a href="ch01-00-introduction.html" class="mobile-nav-chapters previous">
+                    <a rel="prev" href="ch01-00-introduction.html" class="mobile-nav-chapters previous">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
                 
-                    <a href="ch01-02-tokio.html" class="mobile-nav-chapters next">
+                    <a rel="next" href="ch01-02-tokio.html" class="mobile-nav-chapters next">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
@@ -213,6 +233,9 @@ list in this document.</p>
 
         
 
+        
+
+        
 
         <script src="highlight.js"></script>
         <script src="book.js"></script>

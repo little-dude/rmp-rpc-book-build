@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>Complete code - </title>
+        <title></title>
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -20,9 +20,20 @@
 
         <link rel="stylesheet" href="highlight.css">
         <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
-        <!-- MathJax -->
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
 
         <!-- Fetch JQuery from CDN but have a local fallback -->
         <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -31,18 +42,25 @@
                 document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
             }
         </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+        <!-- Custom JS script -->
+        
+
     </head>
     <body class="light">
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
-            var theme = localStorage.getItem('theme');
-            if (theme == null) { theme = 'light'; }
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
             $('body').removeClass().addClass(theme);
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script type="text/javascript">
-            var sidebar = localStorage.getItem('sidebar');
+            var sidebar = store.get('mdbook-sidebar');
             if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
             else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
         </script>
@@ -53,7 +71,7 @@
 
         <div id="page-wrapper" class="page-wrapper">
 
-            <div class="page">
+            <div class="page" tabindex="-1">
                 <div id="menu-bar" class="menu-bar">
                     <div class="left-buttons">
                         <i id="sidebar-toggle" class="fa fa-bars"></i>
@@ -63,7 +81,9 @@
                     <h1 class="menu-title"></h1>
 
                     <div class="right-buttons">
-                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -85,13 +105,13 @@ PRs or file issues.</p>
 <p>This guide does not intend to be a substitute to the <a href="https://tokio.rs/docs/getting-started/tokio/">tokio documentation</a>.</p>
 <p>Actually, if you're starting with Tokio, you will probably have to look into
 the official documentation quite often. The intention is to provide a concrete
-example of how to build things with Tokio. The documentation does a great jobs
-at explaining the concepts behind Tokio and introducing the different pieces of
+examples of how to build things with Tokio. The documentation does a great job
+of explaining the concepts behind Tokio and introducing the different pieces of
 the ecosystem. But there are so many concepts to understand, and so many crates
 available that it can be hard at the beginning to know what you really need to
-build something (at least, that was my feeling when I started working on my
+build something (at least, that's how I felt when I started working on my
 <a href="https://github.com/little-dude/rmp-rpc">first crate</a>. By building a real world
-protocol step by step, we aim at gradually putting into application the
+protocol step by step, we aim at gradually applying the
 concepts and crates presented in the official documentation.</p>
 <a class="header" href="print.html#who-is-the-target-audience" id="who-is-the-target-audience"><h2>Who is the target audience?</h2></a>
 <p>People who already know the basic concepts of Rust and want to get started with
@@ -99,8 +119,8 @@ Tokio, but don't really know where to start.</p>
 <a class="header" href="print.html#disclaimer" id="disclaimer"><h2>Disclaimer</h2></a>
 <p>Two things:</p>
 <ul>
-<li>I am pretty much a beginner with Tokio and this book has not been under any
-review by qualified people yet. It may promote anti-patterns, contain errors,
+<li>I am pretty much a beginner with Tokio and this book has not been
+reviewed by qualified people yet. It may promote anti-patterns, contain errors,
 imprecisions, etc.</li>
 <li>This is work in progress. There are <em>many</em> things I'd like to add: more
 explanations, more detailed examples, TLS support, graceful shutdown for the
@@ -181,9 +201,9 @@ Vec&lt;u32&gt; -----------&gt; &quot;[1,2,3]&quot; -----------&gt; [1, 2, 3]
 <p>In the context of Rust we can say that a serialization format defines how to
 represent a <code>struct</code> as a stream of bytes.  This is what
 <a href="http://serde.rs/">serde</a> does.</p>
-<p>The specificity of <strong>MessagePack</strong> is that it's similar to JSON, but is more
-compact, which makes it faster and lighter to send over the network for
-example. To quote <a href="msgpack.org">msgpack.org</a>, &quot;it's like JSON, but fast and
+<p>The nice thing about <strong>MessagePack</strong> is that it's similar to JSON, but is more
+compact, which makes it faster and lighter to send over the network.
+To quote <a href="msgpack.org">msgpack.org</a>, &quot;it's like JSON, but fast and
 small&quot;. You can find the <a href="https://github.com/msgpack/msgpack/blob/master/spec.md">specifications on
 github</a>. In the Rust
 ecosystem, the main implementation of MessagePack is
@@ -198,23 +218,22 @@ messages. It is very similar to the JSON-RPC protocol described above:</p>
 <li>requests must be answered with a response that carries the same ID</li>
 <li>notifications must not be answered</li>
 </ul>
-<p>The main differences with JSON-RPC are:</p>
+<p>The main differences from JSON-RPC are:</p>
 <ul>
 <li>it uses MessagePack instead of JSON</li>
 <li>messages don't have a &quot;version&quot; field</li>
 <li>message have a &quot;type&quot; field that tell wether they are notifications, requests or responses.</li>
 </ul>
-<p>There are other minor differences but we don't intend to give an exhaustive
+<p>There are other minor differences, but we don't intend to give an exhaustive
 list in this document.</p>
 <a class="header" href="print.html#tokio" id="tokio"><h1>Tokio</h1></a>
 <p>This chapter gives an overview of the Tokio stack. I'll assume that you
 understand what futures are and how they work. If not, I recommend reading
-<a href="http://asquera.de/blog/2017-03-01/the-future-with-futures/">this excellent blog
-post</a>.</p>
+<a href="http://asquera.de/blog/2017-03-01/the-future-with-futures/">this excellent blog post</a>.</p>
 <p>Disclaimer: Async IO and event loops are complex topics that I don't pretend to
-understand. I just know some basic concepts that I'll try to explain with my
+understand. I just know some basic concepts that I'll try to explain in my
 own words. Here is the thing: you don't need to understand these topics to use
-Tokio, and that what makes it awesome in my opinion.</p>
+Tokio, and that what makes it awesome.</p>
 <a class="header" href="print.html#tokio-core" id="tokio-core"><h2>tokio-core</h2></a>
 <p>Let's start with the main piece of Tokio:
 <a href="https://docs.rs/tokio-core/">tokio-core</a>. <code>tokio-core</code> provides two things:</p>
@@ -236,7 +255,7 @@ immediately returns a future that can be polled until it finishes.</p>
 (aka &quot;reactor&quot; or &quot;event loop&quot;) which runs futures. We can already run futures
 with threads (via <a href="https://doc.rust-lang.org/1.6.0/std/thread/fn.spawn.html"><code>std::thread::spawn</code></a> or pools of threads (via
 <a href="https://docs.rs/futures-cpupool"><code>futures_cpupool</code></a>), so why use an
-event loop instead? I'm not entirely sure myself, but here are a few hints:</p>
+event loop instead?</p>
 <ul>
 <li>Threads are expensive when there are many of them, due to context switches.
 You don't want to spawn thousands of threads, especially for IO extensive
@@ -281,7 +300,7 @@ whole tokio stack:</p>
 <li><code>tokio-service</code> for the service (see <a href="ch02-03-00-service.md">chapter 2.3</a>)</li>
 </ul>
 <p>Why an &quot;incomplete&quot; library? We'll see that using only <code>tokio-proto</code>, we cannot
-implement support for notifications. But worry not! this is something we'll fix
+implement support for notifications. But worry not! This is something we'll fix
 in <a href="ch03-00-second-implementation">part 3</a>.</p>
 <p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-2.1">on github</a></p>
 <hr />
@@ -319,7 +338,8 @@ tokio-io = &quot;0.1&quot;
 <p>Create the files: <code>touch src/{client.rs,codec.rs,errors.rs,message.rs,protocol.rs,server.rs}</code>. And in
 <code>src/lib.rs</code> we'll add the dependencies we'll need for this chapter, and
 declare our modules:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 extern crate bytes;
 extern crate rmpv;
@@ -332,7 +352,6 @@ mod server;
 
 pub mod message;
 pub mod protocol;
-
 #}</code></pre></pre>
 <a class="header" href="print.html#representing-messages" id="representing-messages"><h2>Representing messages</h2></a>
 <p>The first thing to do, if we want to convert a stream of bytes into a stream of
@@ -342,7 +361,8 @@ message.</p>
 specifications</a>
 defines three type of messages: requests, notifications, and responses. Let's
 naively translate this to Rust. In <code>src/message.rs</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/message.rs
 
@@ -373,7 +393,6 @@ pub struct Notification {
     // an array of arbitrary value
     pub params: Vec&lt;???&gt;,
 }
-
 #}</code></pre></pre>
 <p>This can be improved in multiple ways:</p>
 <ul>
@@ -382,7 +401,7 @@ to Rust (hence the <code>???</code>). Fortunately <code>rmpv</code> does have a 
 messagepack values&quot;:
 <a href="https://docs.rs/rmpv/0.4.0/rmpv/enum.Value.html"><code>Value</code></a>.</li>
 <li>The <code>type</code> field seems redundant. The rust type carries the same information
-than the MessagePack-RPC <code>type</code> field. We can get rid of it.</li>
+as the MessagePack-RPC <code>type</code> field. We can get rid of it.</li>
 <li>The <code>Response</code> type could be improved: we have a <code>Result</code> type in Rust, we
 don't need the error field to represent a error. Let's make the <code>result</code>
 field a <code>Result</code>.</li>
@@ -390,7 +409,8 @@ field a <code>Result</code>.</li>
 enum.</li>
 </ul>
 <p>It becomes:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/message.rs
 
@@ -417,7 +437,6 @@ pub enum Message {
     Response(Response),
     Notification(Notification),
 }
-
 #}</code></pre></pre>
 <a class="header" href="print.html#codec-1" id="codec-1"><h2>Codec</h2></a>
 <p>We now need to create a <code>Codec</code>. A codec is a type that implements
@@ -425,7 +444,8 @@ pub enum Message {
 and
 <a href="https://docs.rs/tokio-io/0.1.2/tokio_io/codec/trait.Encoder.html"><code>tokio_io::codec::Encoder</code></a>.</p>
 <p>Here is the skeleton of the code, in <code>src/codec.rs</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/codec.rs
 
@@ -456,7 +476,6 @@ impl Encoder for Codec {
         unimplemented!()
     }
 }
-
 #}</code></pre></pre>
 <a class="header" href="print.html#encoding" id="encoding"><h3>Encoding</h3></a>
 <p>Let's focus on the encoder first. We need to somehow turn a <code>Message</code> into a
@@ -465,7 +484,8 @@ stream of bytes conform to the specs.
 looks promising: it converts a <code>Value</code> into a stream of bytes and write these
 bytes in a writer. All we have to do, is turn our <code>Message</code> into a <code>Value</code>. We
 can implement this directly on <code>Message</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/message.rs
 
@@ -505,10 +525,10 @@ impl Message {
             }
         }
     }
-
 #}</code></pre></pre>
 <p>Our <code>Encoder</code> implementation becomes straightforward:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl Encoder for Codec {
     type Item = Message;
@@ -518,7 +538,6 @@ impl Encoder for Codec {
         Ok(rmpv::encode::write_value(&amp;mut buf.writer(), &amp;msg.as_value())?)
     }
 }
-
 #}</code></pre></pre>
 <a class="header" href="print.html#decoding" id="decoding"><h3>Decoding</h3></a>
 <p>The decoder is slightly more complicated.</p>
@@ -529,7 +548,8 @@ a little bit long, we'll split it in multiple methods: <code>Message::decode</co
 decodes the message type, and then delegates the rest to <code>Request::decode</code>,
 <code>Response::decode</code> and <code>Notification::decode</code>. We'll only show
 <code>Request::decode</code> to keep the snippets small.</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/message.rs
 
@@ -590,10 +610,10 @@ impl Request {
 }
 
 // etc. There is a similar decode() implementation for the Notification and Response types.
-
 #}</code></pre></pre>
 <p>A <em>very</em> naive decoder implementation could be:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl Decoder for Codec {
     type Item = Message;
@@ -604,20 +624,20 @@ impl Decoder for Codec {
         Ok(Message::decode(&amp;mut buf))
     }
 }
-
 #}</code></pre></pre>
-<p>Unfortunately, this won't work. It won't because we have no way to know if
+<p>Unfortunately, this won't work. That's because we have no way to know if
 there are enough bytes to read in the <code>BytesMut</code> buffer to decode a full
 message. When tokio choses to call <code>decode</code>, the buffer may even be empty. And
 given our <code>Message::decode</code> implementation, this will panic.</p>
 <a class="header" href="print.html#adding-error-handling" id="adding-error-handling"><h4>Adding error handling</h4></a>
 <p>If there are not enough bytes to read, we need to let tokio know that we need
-more bytes. Tokio we'll re-call the method later, when there is more to read.
+more bytes. Tokio will re-call the method later, when there is more to read.
 We do so by returning <code>Ok(None)</code>. But how do we know we need more bytes? Error
 handling! <code>Message::decode</code> could return a specific error when it fails to
 decode a message because it's incomplete. We can create a new <code>DecodeError</code>
 error type in <code>src/errors.rs</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/errors.rs
 
@@ -691,10 +711,10 @@ impl From&lt;decode::Error&gt; for DecodeError {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>With error handling, we can clean up our <code>decode</code> methods:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/message.rs
 
@@ -748,11 +768,11 @@ impl Request {
         Ok(Request {id: id, method: method, params: params})
     }
 }
-
 #}</code></pre></pre>
 <a class="header" href="print.html#final-decoder" id="final-decoder"><h4>Final decoder</h4></a>
 <p>The actual <code>Decoder</code> implementation now becomes:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl Decoder for Codec {
     type Item = Message;
@@ -802,17 +822,15 @@ impl Decoder for Codec {
         res
     }
 }
-
 #}</code></pre></pre>
-<p>I hope the comments are detailed enough to understand what happens. To sum up,
-the decoder is called regularly by tokio, each time with three possible
-outcomes:</p>
+<p>To sum up, the decoder is called regularly by tokio, each time with three
+possible outcomes:</p>
 <ul>
 <li>We are able to read a message =&gt; return <code>Ok(message)</code> and remove these bytes
 from the buffer.</li>
-<li>There are not enough byte to read a message =&gt; return <code>Ok(None)</code> to tell
+<li>There are not enough bytes to read a message =&gt; return <code>Ok(None)</code> to tell
 tokio to retry when there is more to read, and leave the buffer intact.</li>
-<li>An error occurs:
+<li>An error occurs if:
 <ul>
 <li>An invalid MessagePack value is read =&gt; try to read the next one</li>
 <li>An unknown io error occurs =&gt; return <code>Err(the_error)</code></li>
@@ -834,7 +852,8 @@ tokio-io = &quot;0.1&quot;
 tokio-proto = &quot;0.1&quot;
 </code></pre>
 <a class="header" href="print.html#librs" id="librs"><h2>lib.rs</h2></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 extern crate bytes;
 extern crate rmpv;
@@ -847,10 +866,10 @@ mod server;
 
 pub mod message;
 pub mod protocol;
-
 #}</code></pre></pre>
 <a class="header" href="print.html#messagers" id="messagers"><h2>message.rs</h2></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use std::convert::From;
 use std::io::Read;
@@ -1057,10 +1076,10 @@ impl Response {
         }
     }
 }
-
 #}</code></pre></pre>
 <a class="header" href="print.html#codecrs" id="codecrs"><h2>codec.rs</h2></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use std::io;
 
@@ -1117,10 +1136,10 @@ impl Encoder for Codec {
         )?)
     }
 }
-
 #}</code></pre></pre>
 <a class="header" href="print.html#errorsrs" id="errorsrs"><h2>errors.rs</h2></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use std::{error, fmt, io};
 
@@ -1182,7 +1201,6 @@ impl From&lt;decode::Error&gt; for DecodeError {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-2.2">on github</a></p>
 <hr />
@@ -1236,7 +1254,8 @@ tokio-io = &quot;0.1&quot;
 tokio-proto = &quot;0.1&quot;
 </code></pre>
 <p>And in <code>src/lib.rs</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 extern crate bytes;
 extern crate rmpv;
@@ -1250,12 +1269,12 @@ mod server;
 
 pub mod message;
 pub mod protocol;
-
 #}</code></pre></pre>
 <p>The protocol implemententation is straightforward, both for the client and for
 the server. All we have to do, is tell the protocol which codec it should use.
 Hint: it's the one we wrote in the previous post.</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/protocol.rs
 
@@ -1283,7 +1302,6 @@ impl&lt;T: AsyncRead + AsyncWrite + 'static&gt; ClientProto&lt;T&gt; for Protoco
         Ok(io.framed(Codec))
     }
 }
-
 #}</code></pre></pre>
 <p>The code is short, but many things happen:</p>
 <ul>
@@ -1313,7 +1331,8 @@ implementation detail to me.</li>
 at
 <a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/multiplex/trait.ClientProto.html"><code>tokio_proto::multiplex::ClientProto</code></a>
 we notice that <code>Transport</code> has the following trait bound:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 # // add dummy trait to have some syntax highlighting
 # trait Dummy {
@@ -1321,20 +1340,19 @@ type Transport: 'static
               + Stream&lt;Item = (RequestId, Self::Response), Error = io::Error&gt;
               + Sink&lt;SinkItem = (RequestId, Self::Request), SinkError = io::Error&gt;
 # }
-
 #}</code></pre></pre>
 <p>But as per <a href="https://docs.rs/tokio-io/0.1.2/tokio_io/codec/struct.Framed.html">the <code>Framed</code> documention</a>,
 our <code>Framed&lt;T, Codec&gt;</code> implements:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 Stream&lt;Item=Codec::Item, Codec::Error&gt; + Sink&lt;SinkItem = Codec::Item, SinkError = Codec::Error&gt;
-
 #}</code></pre></pre>
 <p>which corresponds to:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 Stream&lt;Item = Message, Error = io::Error&gt; + Sink&lt;SinkItem = Message, SinkError = io::Error&gt;
-
 #}</code></pre></pre>
 <p>This is because we're using the multiplexed version of <code>ClientProto</code> and
 <code>ServerProto</code>. The codec needs to be updated to handle the message IDs. Again,
@@ -1342,7 +1360,8 @@ this is pretty easy <em>if we ignore notifications</em>.</p>
 <a class="header" href="print.html#tweaking-the-codec" id="tweaking-the-codec"><h2>Tweaking the codec</h2></a>
 <p>The decoder should now return a tuple <code>(u64, Message)</code> instead of a <code>Message</code>.
 We can tweak the <code>Decodec</code> implementation to achieve this:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/codec.rs
 
@@ -1385,10 +1404,10 @@ impl Decoder for Codec {
         res
     }
 }
-
 #}</code></pre></pre>
 <p>Similarly, the <code>Encoder</code> should now take an ID as argument. It becomes:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/codec.rs
 
@@ -1410,7 +1429,6 @@ impl Encoder for Codec {
         Ok(rmpv::encode::write_value(&amp;mut buf.writer(), &amp;message.as_value())?)
     }
 }
-
 #}</code></pre></pre>
 <p><code>cargo build</code>, and... it compiles!</p>
 <a class="header" href="print.html#complete-code-1" id="complete-code-1"><h1>Complete code</h1></a>
@@ -1428,7 +1446,8 @@ tokio-io = &quot;0.1&quot;
 tokio-proto = &quot;0.1&quot;
 </code></pre>
 <a class="header" href="print.html#librs-1" id="librs-1"><h2>lib.rs</h2></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 extern crate bytes;
 extern crate rmpv;
@@ -1442,10 +1461,10 @@ mod server;
 
 pub mod message;
 pub mod protocol;
-
 #}</code></pre></pre>
 <a class="header" href="print.html#codecrs-1" id="codecrs-1"><h2>codec.rs</h2></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use std::io;
 
@@ -1514,10 +1533,10 @@ impl Encoder for Codec {
         Ok(rmpv::encode::write_value(&amp;mut buf.writer(), &amp;message.as_value())?)
     }
 }
-
 #}</code></pre></pre>
 <a class="header" href="print.html#protocolrs" id="protocolrs"><h2>protocol.rs</h2></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use std::io;
 
@@ -1549,7 +1568,6 @@ impl&lt;T: AsyncRead + AsyncWrite + 'static&gt; ClientProto&lt;T&gt; for Protoco
         Ok(io.framed(Codec))
     }
 }
-
 #}</code></pre></pre>
 <a class="header" href="print.html#service" id="service"><h1>Service</h1></a>
 <p>The last piece of the Tokio stack is the <code>Service</code> trait. Our library does not
@@ -1604,7 +1622,8 @@ fn main() {
 <p><a href="https://docs.rs/tokio-service/0.1.0/tokio_service/trait.Service.html">As explained</a>
 in the <code>Service</code> trait documentation, a server implements the <code>Service</code> trait.
 We'll create an empty <code>CalculatorService</code> type, and implement <code>Service</code> for it:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 struct CalculatorService;
 
@@ -1618,7 +1637,6 @@ impl Service for CalculatorService {
         unimplemented!()
     }
 }
-
 #}</code></pre></pre>
 <p>This little snippet already deserves some explanations:</p>
 <ul>
@@ -1631,7 +1649,8 @@ arguments and handle all the cases where they are wrong. To keep
 <code>Service::call()</code> readable, we implement the request handling on
 <code>CalculatorService</code> directly, and only use <code>Service::call()</code> to dispatch the
 request. The code looks like:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 struct CalculatorService;
 
@@ -1669,7 +1688,6 @@ impl Service for CalculatorService {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>Notice that the response returned by the service always has its <code>id</code> attribute
 set to <code>0</code>. This is because the protocol handles the IDs for us and the service
@@ -1708,7 +1726,8 @@ and not a type that <em>implements</em> a service? The reason for this is that
 internally, tokio creates a new service for each client that connects.</p>
 <p>Let's listen to the compiler and implement <code>NewService</code>. We can do that
 directly on <code>CalculatorService</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl NewService for CalculatorService {
     type Request = Message;
@@ -1720,7 +1739,6 @@ impl NewService for CalculatorService {
         Ok(self.clone())
     }
 }
-
 #}</code></pre></pre>
 <p>Aaaand...</p>
 <pre><code>error[E0277]: the trait bound `std::io::Error: std::convert::From&lt;std::string::String&gt;` is not satisfied
@@ -1750,7 +1768,8 @@ what's going on here, please let me know. Anywya, since we can't implement
 <li>use <code>io::Error</code> direclty</li>
 </ul>
 <p>We'll go for the first one, which is cleaner in my opinion:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 struct ServiceError(String);
 
@@ -1777,12 +1796,12 @@ impl From&lt;ServiceError&gt; for io::Error {
         io::Error::new(io::ErrorKind::Other, err.0)
     }
 }
-
 #}</code></pre></pre>
 <p>This is pretty basic. The <code>From&lt;&amp;str&gt;</code> implementation allow us to make only
 minimal changes to the <code>Service</code> and <code>NewService</code> traits. All we have to change
 is the error type:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl NewService for CalculatorService {
     type Request = Message;
@@ -1801,7 +1820,6 @@ impl Service for CalculatorService {
 
     // ...
 }
-
 #}</code></pre></pre>
 <p><code>cargo build --example calculator</code> now works.</p>
 <p>The last step is to run the server in background:</p>
@@ -1874,14 +1892,14 @@ client, which seems to contradict the diagram I showed in <a href="introduction/
 2</a>:</p>
 <p><img src="./images/tokio-stack-client-view.png" alt="tokio client stack illustration" /></p>
 <p>Actually, the <code>Service</code> <em>is</em> there. But it is already provided by tokio. The magic operates here:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 let connection = TcpClient::new(Protocol).connect(&amp;addr, &amp;handle);
 let requests = connection.and_then(|client| {
     // client implements `Service`! That's why we can do client.call(...)
     // but how come?
 });
-
 #}</code></pre></pre>
 <p><a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/struct.TcpClient.html#method.connect"><code>tokio_proto::TcpClient::connect()</code>
 returns</a>
@@ -1890,7 +1908,8 @@ a
 which is a future that <a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/trait.BindClient.html">returns a
 <code>tokio_proto::BindClient</code></a>
 when it completes. Here is <code>BindClient</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub trait BindClient&lt;Kind, T: 'static&gt;: 'static {
     type ServiceRequest;
@@ -1899,7 +1918,6 @@ pub trait BindClient&lt;Kind, T: 'static&gt;: 'static {
     type BindClient: Service&lt;Request = Self::ServiceRequest, Response = Self::ServiceResponse, Error = Self::ServiceError&gt;;
     fn bind_client(&amp;self, handle: &amp;Handle, io: T) -&gt; Self::BindClient;
 }
-
 #}</code></pre></pre>
 <p><code>BindClient</code> is a complex type, and according to the documentation, it does not
 implement <code>Service</code>. However, it does have a <code>BindClient</code> associated type that
@@ -2080,7 +2098,8 @@ tokio-service = &quot;0.1&quot;
 </code></pre>
 <p>And the <code>src/lib.rs</code> should look like this (note that we also made the
 <code>protocol</code> module private, and the <code>client</code> and <code>server</code> modules public):</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 extern crate bytes;
 extern crate futures;
@@ -2097,7 +2116,6 @@ mod protocol;
 pub mod client;
 pub mod message;
 pub mod server;
-
 #}</code></pre></pre>
 <a class="header" href="print.html#implementation-1" id="implementation-1"><h2>Implementation</h2></a>
 <p>In the previous example, our <code>Service</code> implementation was only matching on the
@@ -2105,18 +2123,19 @@ incoming messages, and dispatching the requests to the <code>CalculatorService</
 implementation. We could spare users the pain to write this boilerplate code by
 wrapping the <code>Service</code>, and providing another trait.</p>
 <p>Basically, we would ask users to implement this trait:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use rmpv::Value;
 
 pub trait Handler {
     fn handle_request(&amp;mut self, method: &amp;str, params: &amp;[Value]) -&gt; Result&lt;Value, Value&gt;;
 }
-
 #}</code></pre></pre>
 <p>If we don't want users to implement <code>Service</code> themself, we need to provide an
 implementation of it for any type that implements our <code>Handler</code> trait:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use futures::Future;
 use tokio_service::Service;
@@ -2132,11 +2151,11 @@ impl&lt;T: Handler&gt; Service for T {
         // TODO
     }
 }
-
 #}</code></pre></pre>
 <p>And the actual implementation can amost be copy/pasted from the previous
 example:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use futures::{future, Future};
 use tokio_service::Service;
@@ -2159,11 +2178,11 @@ impl&lt;T: Handler&gt; Service for T {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>The only thing missing is the <code>ServiceError</code> type, but again, we can just copy
 paste it from our example. Let's put it under <code>src/errors.rs</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/errors.rs
 
@@ -2197,7 +2216,6 @@ impl From&lt;ServiceError&gt; for io::Error {
         io::Error::new(io::ErrorKind::Other, err.0)
     }
 }
-
 #}</code></pre></pre>
 <p>Unfortunately, compilation fails:</p>
 <pre><code>compiling rmp-rpc-demo v0.1.0 (file:///home/corentih/rust/rmp-rpc-demo)
@@ -2239,7 +2257,8 @@ that enforces this is called the
 <a href="https://github.com/rust-lang/rfcs/blob/master/text/1023-rebalancing-coherence.md">orphaned rule</a>.
 To work around this limitation, we can introduce a new type that is generic
 over any type <code>T</code> that implement <code>Handler</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub struct Server&lt;T: Handler&gt;(T);
 
@@ -2252,13 +2271,13 @@ impl&lt;T: Handler&gt; Server&lt;T&gt; {
 impl&lt;T: Handler&gt; Service for Server&lt;T&gt; {
     // unchanged
 }
-
 #}</code></pre></pre>
 <p>We forgot one last thing: <code>Server&lt;T&gt;</code> must not only implement <code>Service</code>, but
 also <code>NewService</code>. In our example, we implemented <code>NewService</code> by cloning the
 service. We can do the same here and clone <code>Server&lt;T&gt;</code>. That means <code>T</code> must be
 clone-able, so we also add a <code>Clone</code> trait bound:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub struct Server&lt;T: Handler + Clone&gt;(T);
 
@@ -2282,7 +2301,6 @@ impl&lt;T: Handler + Clone&gt; NewService for Server&lt;T&gt; {
         Ok(Server(self.0.clone()))
     }
 }
-
 #}</code></pre></pre>
 <p>Finally, we can spare users the effort of starting a new <code>TcpServer</code> like we did in the example with:</p>
 <pre><pre class="playpen"><code class="language-rust">use std::thread;
@@ -2301,7 +2319,8 @@ fn main() {
 }
 </code></pre></pre>
 <p>Let's implement a <code>serve()</code> method on <code>Server&lt;T&gt;</code> that consumes it:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use tokio_proto::TcpServer;
 use protocol::Protocol;
@@ -2313,7 +2332,6 @@ impl&lt;T: Handler + Clone&gt; Server&lt;T&gt; {
         TcpServer::new(Protocol, address).serve(self)
     }
 }
-
 #}</code></pre></pre>
 <p>Not that this is a blocking method. Users will still have to spawn it in a
 separate thread to run it in background.</p>
@@ -2333,7 +2351,8 @@ it appears that the argument has the following trait bounds:</p>
 <pre><code>NewService + Send + Sync + 'static
 </code></pre>
 <p>Well, let's just add these trait bounds:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub struct Server&lt;T: Handler + Clone + Sync + Send + 'static&gt;(T);
 
@@ -2348,12 +2367,12 @@ impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; Service for Server&lt;T&g
 impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; NewService for Server&lt;T&gt; {
     // ...
 }
-
 #}</code></pre></pre>
 <p>And this time, it should compile!</p>
 <a class="header" href="print.html#complete-code-3" id="complete-code-3"><h1>Complete code</h1></a>
 <a class="header" href="print.html#serverrs" id="serverrs"><h2>server.rs</h2></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use std::net::SocketAddr;
 use std::io;
@@ -2411,14 +2430,14 @@ impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; NewService for Server&lt;
         Ok(Server(self.0.clone()))
     }
 }
-
 #}</code></pre></pre>
 <p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-2.3.3">on github</a></p>
 <hr />
 <a class="header" href="print.html#wrapping-the-client" id="wrapping-the-client"><h1>Wrapping the client</h1></a>
 <p>Just like for the server, there is some boilerplate code that can be spared to
 users. This kind of code is un-necessarily verbose for example:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 let req = Message::Request(Request {
     method: &quot;add&quot;.into(),
@@ -2428,12 +2447,12 @@ let req = Message::Request(Request {
 client.call(req).and_then(|response| {
     // ...
 });
-
 #}</code></pre></pre>
 <p>We should not have to build a full <code>Message</code> in the first place. To send a
 request, users should just have to call a method that takes two arguments: the
 method, and the parameters. Let's build a <code>Client</code> type with such a method:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/client.rs
 
@@ -2450,14 +2469,14 @@ impl Client {
         // TODO
     }
 }
-
 #}</code></pre></pre>
 <p>This is a bit naive because as it stands, <code>Client</code> is an empty type. Instead,
 it should wrap a type that implements <code>Service</code> and can send requests. It turns
 out that tokio provides such a type:
 <a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/multiplex/struct.ClientService.html"><code>tokio_proto::multiplex::ClientService</code></a>.
 All we have to do is wrap it and use it to send the requests:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/client.rs
 
@@ -2487,10 +2506,10 @@ impl Client {
         Box::new(resp) as Response
     }
 }
-
 #}</code></pre></pre>
 <p>It is easy to adapt the example code to add a <code>connect()</code> method as well:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/client.rs
 
@@ -2509,11 +2528,11 @@ impl Client {
 
     // ...
 }
-
 #}</code></pre></pre>
 <a class="header" href="print.html#complete-code-4" id="complete-code-4"><h1>Complete code</h1></a>
 <a class="header" href="print.html#clientrs" id="clientrs"><h2>client.rs</h2></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use std::io;
 use std::net::SocketAddr;
@@ -2559,7 +2578,6 @@ impl Client {
         Box::new(resp) as Response
     }
 }
-
 #}</code></pre></pre>
 <p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-2.3.4">on github</a></p>
 <hr />
@@ -2753,7 +2771,8 @@ tokio-core = &quot;0.1&quot;
 tokio-io = &quot;0.1&quot;
 </code></pre>
 <a class="header" href="print.html#srclibrs" id="srclibrs"><h3>src/lib.rs</h3></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 extern crate bytes;
 extern crate futures;
@@ -2767,22 +2786,22 @@ mod errors;
 pub mod client;
 pub mod message;
 pub mod server;
-
 #}</code></pre></pre>
 <a class="header" href="print.html#srcclientrs" id="srcclientrs"><h3>src/client.rs</h3></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // empty
-
 #}</code></pre></pre>
 <a class="header" href="print.html#srcserverrs" id="srcserverrs"><h3>src/server.rs</h3></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // empty
-
 #}</code></pre></pre>
 <a class="header" href="print.html#codecrs-2" id="codecrs-2"><h3>codec.rs</h3></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/codec.rs
 
@@ -2841,14 +2860,14 @@ impl Encoder for Codec {
         )?)
     }
 }
-
 #}</code></pre></pre>
 <p>You can find the complete code for this chapter <a href="https://github.com/little-dude/rmp-rpc-demo/tree/chapter-3.1">on github</a></p>
 <hr />
 <a class="header" href="print.html#re-implementing-the-server" id="re-implementing-the-server"><h1>Re-implementing the server</h1></a>
 <p>We'll start by implementing the server. So let's empty <code>src/server.rs</code>, and
 import everything we'll need:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use std::io;
 use std::collections::HashMap;
@@ -2864,7 +2883,6 @@ use tokio_io::codec::Framed;
 
 use codec::Codec;
 use message::{Response, Message};
-
 #}</code></pre></pre>
 <p>When working on this library, I kept looking at Tokio's source code. As a
 result, I ended up doing things in a very similar way: our library with provide
@@ -2874,7 +2892,8 @@ a <code>Service</code> and a <code>ServiceBuilder</code> traits, similar to Toki
 want build their MessagePack-RPC server. Unlike Tokio's <code>Service</code> trait, it
 will have two methods instead of one: one to handle requests, and one to handle
 notifications.</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub trait Service {
     type Error: Error;
@@ -2885,11 +2904,11 @@ pub trait Service {
 
     fn handle_notification(&amp;mut self, method: &amp;str, params: &amp;[Value]) -&gt; BoxFuture&lt;(), Self::Error&gt;;
 }
-
 #}</code></pre></pre>
 <p>Note that these method do not take a <code>Message</code> as argument. This is to avoid
 users this kind of code we wrote in the previous example:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 fn call(&amp;self, msg: Message) -&gt; SomeReturnType {
     match msg {
@@ -2904,7 +2923,6 @@ fn call(&amp;self, msg: Message) -&gt; SomeReturnType {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>Also, notice that <code>Service::handle_request()</code> returns a future that produces a
 <code>Result&lt;T, E&gt;</code> where <code>T</code> and <code>E</code> can be converted into values, instead of a
@@ -2912,21 +2930,22 @@ fn call(&amp;self, msg: Message) -&gt; SomeReturnType {
 makes the signature nicer.</p>
 <p>For each client, a new <code>Service</code> will be created, so we also a builder trait,
 similar to <code>NewService</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub trait ServiceBuilder {
     type Service: Service + 'static;
 
     fn build(&amp;self) -&gt; Self::Service;
 }
-
 #}</code></pre></pre>
 <p>Finally, for each client a new future will be spawned. This future shall read
 the messages coming from the client, dispatch them to the <code>Service</code>, and
 forward the responses back to the client. This future is not a function but a
 type that implements the <code>Future</code> trait. We'll call it <code>Server</code>. The server
 owns a service instance, and a TCP stream connected to the client.</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 struct Server&lt;S: Service&gt; {
     service: S,
@@ -2951,7 +2970,6 @@ impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
         //  - send the responses back to the client
     }
 }
-
 #}</code></pre></pre>
 <p>We'll start by turning the <code>TcpStream</code> into <code>Framed&lt;TcpStream, Codec&gt;</code> where
 <code>Codec</code> is the MessagePack-RPC codec we wrote earlier. That will allow us to
@@ -2970,7 +2988,8 @@ impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
 </code></pre>
 <p>The biggest task is to implement <code>Future</code>. The first thing it has to do is to
 read the incoming messages and dispatch them to the service:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 
 #fn main() {
 impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
@@ -3002,14 +3021,14 @@ impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
         Ok(Async::NotReady)
     }
 }
-
 #}</code></pre></pre>
 <p>It's important to understand that when spawning a <code>Server</code> instance on a tokio
 event loop, tokio will keep calling <code>poll()</code> as long as it return
 <code>Ok(Async::NotReady)</code>. In other words, the server runs until <code>poll()</code> returns
 an error or <code>Ok(Async::Ready(()))</code>.</p>
 <p>Let's take a closer look at the <code>Server::dispatch_message()</code> method:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
 
@@ -3032,13 +3051,13 @@ impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>Pretty straightforward except that... we need to keep track of the futures
 returned by <code>handle_request()</code> and <code>handle_notfication()</code> of course. Since
 responses have an ID, it seems natural to use a hashmap and use the ID as a
 key. For the notifications, a vector is enough:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 struct Server&lt;S: Service&gt; {
     service: S,
@@ -3077,7 +3096,6 @@ impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>It remains to poll the futures returned by our service until they complete.
 Futures returned by <code>handle_request()</code> return a <code>Response</code> that needs to be
@@ -3085,7 +3103,8 @@ sent back the client. Futures returned by <code>handle_notification()</code> don
 anything, but it's important to poll them as well, to run them to completion.</p>
 <p>We'll create two separate methods to poll these futures:
 <code>Server::process_requests()</code> and <code>Server::process_notifications()</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 
 #fn main() {
 impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
@@ -3138,10 +3157,10 @@ impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
             let _ = self.request_tasks.remove(idx);
         }
     }
-
 #}</code></pre></pre>
 <p>I think the comments make the code clear enough. Of course we need to call these methods in <code>poll()</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 
 #fn main() {
 impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
@@ -3163,7 +3182,6 @@ impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
         Ok(Async::NotReady)
     }
 }
-
 #}</code></pre></pre>
 <p>We are almost done, but one subtility remains. If you noticed, when sending the
 response, we use <code>stream.start_send()</code>. The
@@ -3178,7 +3196,8 @@ with
 We could do this for each message, right after <code>start_send()</code>, but this would
 kind of defeat the purpose of buffering.  Instead, we'll flush after we
 processed all the requests:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
     type Item = ();
@@ -3200,12 +3219,12 @@ impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
         Ok(Async::NotReady)
     }
 }
-
 #}</code></pre></pre>
 <p>Finally, we could try to make users life easier by providing a function to run
 a server on a Tokio event loop. It's not mandatory, but it will also show how
 the code we just wrote can be used:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub fn serve&lt;B: ServiceBuilder&gt;(address: &amp;SocketAddr, service_builder: B) {
     let mut core = Core::new().unwrap();
@@ -3218,7 +3237,6 @@ pub fn serve&lt;B: ServiceBuilder&gt;(address: &amp;SocketAddr, service_builder:
         Ok(())
     })).unwrap()
 }
-
 #}</code></pre></pre>
 <p>A TCP listener creates a new service for each client that connects, and spawn a
 new <code>Server</code> instance on the event loop. Once the server is spawned, Tokio
@@ -3227,7 +3245,8 @@ MessagePack-RPC server actually works by spawning multiple <code>Server</code> (
 client).</p>
 <a class="header" href="print.html#complete-code-7" id="complete-code-7"><h1>Complete code</h1></a>
 <a class="header" href="print.html#serverrs-1" id="serverrs-1"><h2>server.rs</h2></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use std::io;
 use std::collections::HashMap;
@@ -3370,7 +3389,6 @@ pub fn serve&lt;B: ServiceBuilder&gt;(address: &amp;SocketAddr, service_builder:
         Ok(())
     })).unwrap()
 }
-
 #}</code></pre></pre>
 
                 </div>
@@ -3401,6 +3419,15 @@ pub fn serve&lt;B: ServiceBuilder&gt;(address: &amp;SocketAddr, service_builder:
 
         
 
+        
+
+        
+        <script>
+            $(document).ready(function() {
+                window.print();
+            })
+        </script>
+        
 
         <script src="highlight.js"></script>
         <script src="book.js"></script>

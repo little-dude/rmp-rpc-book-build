@@ -20,9 +20,20 @@
 
         <link rel="stylesheet" href="highlight.css">
         <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
-        <!-- MathJax -->
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
 
         <!-- Fetch JQuery from CDN but have a local fallback -->
         <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -31,18 +42,25 @@
                 document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
             }
         </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+        <!-- Custom JS script -->
+        
+
     </head>
     <body class="light">
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
-            var theme = localStorage.getItem('theme');
-            if (theme == null) { theme = 'light'; }
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
             $('body').removeClass().addClass(theme);
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script type="text/javascript">
-            var sidebar = localStorage.getItem('sidebar');
+            var sidebar = store.get('mdbook-sidebar');
             if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
             else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
         </script>
@@ -53,7 +71,7 @@
 
         <div id="page-wrapper" class="page-wrapper">
 
-            <div class="page">
+            <div class="page" tabindex="-1">
                 <div id="menu-bar" class="menu-bar">
                     <div class="left-buttons">
                         <i id="sidebar-toggle" class="fa fa-bars"></i>
@@ -63,7 +81,9 @@
                     <h1 class="menu-title"></h1>
 
                     <div class="right-buttons">
-                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -114,7 +134,8 @@ fn main() {
 <p><a href="https://docs.rs/tokio-service/0.1.0/tokio_service/trait.Service.html">As explained</a>
 in the <code>Service</code> trait documentation, a server implements the <code>Service</code> trait.
 We'll create an empty <code>CalculatorService</code> type, and implement <code>Service</code> for it:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 struct CalculatorService;
 
@@ -128,7 +149,6 @@ impl Service for CalculatorService {
         unimplemented!()
     }
 }
-
 #}</code></pre></pre>
 <p>This little snippet already deserves some explanations:</p>
 <ul>
@@ -141,7 +161,8 @@ arguments and handle all the cases where they are wrong. To keep
 <code>Service::call()</code> readable, we implement the request handling on
 <code>CalculatorService</code> directly, and only use <code>Service::call()</code> to dispatch the
 request. The code looks like:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 struct CalculatorService;
 
@@ -179,7 +200,6 @@ impl Service for CalculatorService {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>Notice that the response returned by the service always has its <code>id</code> attribute
 set to <code>0</code>. This is because the protocol handles the IDs for us and the service
@@ -218,7 +238,8 @@ and not a type that <em>implements</em> a service? The reason for this is that
 internally, tokio creates a new service for each client that connects.</p>
 <p>Let's listen to the compiler and implement <code>NewService</code>. We can do that
 directly on <code>CalculatorService</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl NewService for CalculatorService {
     type Request = Message;
@@ -230,7 +251,6 @@ impl NewService for CalculatorService {
         Ok(self.clone())
     }
 }
-
 #}</code></pre></pre>
 <p>Aaaand...</p>
 <pre><code>error[E0277]: the trait bound `std::io::Error: std::convert::From&lt;std::string::String&gt;` is not satisfied
@@ -260,7 +280,8 @@ what's going on here, please let me know. Anywya, since we can't implement
 <li>use <code>io::Error</code> direclty</li>
 </ul>
 <p>We'll go for the first one, which is cleaner in my opinion:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 struct ServiceError(String);
 
@@ -287,12 +308,12 @@ impl From&lt;ServiceError&gt; for io::Error {
         io::Error::new(io::ErrorKind::Other, err.0)
     }
 }
-
 #}</code></pre></pre>
 <p>This is pretty basic. The <code>From&lt;&amp;str&gt;</code> implementation allow us to make only
 minimal changes to the <code>Service</code> and <code>NewService</code> traits. All we have to change
 is the error type:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl NewService for CalculatorService {
     type Request = Message;
@@ -311,7 +332,6 @@ impl Service for CalculatorService {
 
     // ...
 }
-
 #}</code></pre></pre>
 <p><code>cargo build --example calculator</code> now works.</p>
 <p>The last step is to run the server in background:</p>
@@ -384,14 +404,14 @@ client, which seems to contradict the diagram I showed in <a href="introduction/
 2</a>:</p>
 <p><img src="./images/tokio-stack-client-view.png" alt="tokio client stack illustration" /></p>
 <p>Actually, the <code>Service</code> <em>is</em> there. But it is already provided by tokio. The magic operates here:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 let connection = TcpClient::new(Protocol).connect(&amp;addr, &amp;handle);
 let requests = connection.and_then(|client| {
     // client implements `Service`! That's why we can do client.call(...)
     // but how come?
 });
-
 #}</code></pre></pre>
 <p><a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/struct.TcpClient.html#method.connect"><code>tokio_proto::TcpClient::connect()</code>
 returns</a>
@@ -400,7 +420,8 @@ a
 which is a future that <a href="https://docs.rs/tokio-proto/0.1.1/tokio_proto/trait.BindClient.html">returns a
 <code>tokio_proto::BindClient</code></a>
 when it completes. Here is <code>BindClient</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub trait BindClient&lt;Kind, T: 'static&gt;: 'static {
     type ServiceRequest;
@@ -409,7 +430,6 @@ pub trait BindClient&lt;Kind, T: 'static&gt;: 'static {
     type BindClient: Service&lt;Request = Self::ServiceRequest, Response = Self::ServiceResponse, Error = Self::ServiceError&gt;;
     fn bind_client(&amp;self, handle: &amp;Handle, io: T) -&gt; Self::BindClient;
 }
-
 #}</code></pre></pre>
 <p><code>BindClient</code> is a complex type, and according to the documentation, it does not
 implement <code>Service</code>. However, it does have a <code>BindClient</code> associated type that
@@ -567,13 +587,13 @@ fn main() {
 
                 <!-- Mobile navigation buttons -->
                 
-                    <a href="ch02-03-00-service.html" class="mobile-nav-chapters previous">
+                    <a rel="prev" href="ch02-03-00-service.html" class="mobile-nav-chapters previous">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
                 
-                    <a href="ch02-03-02-wrapping-the-server.html" class="mobile-nav-chapters next">
+                    <a rel="next" href="ch02-03-02-wrapping-the-server.html" class="mobile-nav-chapters next">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
@@ -607,6 +627,9 @@ fn main() {
 
         
 
+        
+
+        
 
         <script src="highlight.js"></script>
         <script src="book.js"></script>

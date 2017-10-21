@@ -20,9 +20,20 @@
 
         <link rel="stylesheet" href="highlight.css">
         <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
-        <!-- MathJax -->
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
 
         <!-- Fetch JQuery from CDN but have a local fallback -->
         <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -31,18 +42,25 @@
                 document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
             }
         </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+        <!-- Custom JS script -->
+        
+
     </head>
     <body class="light">
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
-            var theme = localStorage.getItem('theme');
-            if (theme == null) { theme = 'light'; }
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
             $('body').removeClass().addClass(theme);
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script type="text/javascript">
-            var sidebar = localStorage.getItem('sidebar');
+            var sidebar = store.get('mdbook-sidebar');
             if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
             else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
         </script>
@@ -53,7 +71,7 @@
 
         <div id="page-wrapper" class="page-wrapper">
 
-            <div class="page">
+            <div class="page" tabindex="-1">
                 <div id="menu-bar" class="menu-bar">
                     <div class="left-buttons">
                         <i id="sidebar-toggle" class="fa fa-bars"></i>
@@ -63,7 +81,9 @@
                     <h1 class="menu-title"></h1>
 
                     <div class="right-buttons">
-                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -96,7 +116,8 @@ tokio-service = &quot;0.1&quot;
 </code></pre>
 <p>And the <code>src/lib.rs</code> should look like this (note that we also made the
 <code>protocol</code> module private, and the <code>client</code> and <code>server</code> modules public):</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 extern crate bytes;
 extern crate futures;
@@ -113,7 +134,6 @@ mod protocol;
 pub mod client;
 pub mod message;
 pub mod server;
-
 #}</code></pre></pre>
 <a class="header" href="ch02-03-02-wrapping-the-server.html#implementation" id="implementation"><h2>Implementation</h2></a>
 <p>In the previous example, our <code>Service</code> implementation was only matching on the
@@ -121,18 +141,19 @@ incoming messages, and dispatching the requests to the <code>CalculatorService</
 implementation. We could spare users the pain to write this boilerplate code by
 wrapping the <code>Service</code>, and providing another trait.</p>
 <p>Basically, we would ask users to implement this trait:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use rmpv::Value;
 
 pub trait Handler {
     fn handle_request(&amp;mut self, method: &amp;str, params: &amp;[Value]) -&gt; Result&lt;Value, Value&gt;;
 }
-
 #}</code></pre></pre>
 <p>If we don't want users to implement <code>Service</code> themself, we need to provide an
 implementation of it for any type that implements our <code>Handler</code> trait:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use futures::Future;
 use tokio_service::Service;
@@ -148,11 +169,11 @@ impl&lt;T: Handler&gt; Service for T {
         // TODO
     }
 }
-
 #}</code></pre></pre>
 <p>And the actual implementation can amost be copy/pasted from the previous
 example:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use futures::{future, Future};
 use tokio_service::Service;
@@ -175,11 +196,11 @@ impl&lt;T: Handler&gt; Service for T {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>The only thing missing is the <code>ServiceError</code> type, but again, we can just copy
 paste it from our example. Let's put it under <code>src/errors.rs</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/errors.rs
 
@@ -213,7 +234,6 @@ impl From&lt;ServiceError&gt; for io::Error {
         io::Error::new(io::ErrorKind::Other, err.0)
     }
 }
-
 #}</code></pre></pre>
 <p>Unfortunately, compilation fails:</p>
 <pre><code>compiling rmp-rpc-demo v0.1.0 (file:///home/corentih/rust/rmp-rpc-demo)
@@ -255,7 +275,8 @@ that enforces this is called the
 <a href="https://github.com/rust-lang/rfcs/blob/master/text/1023-rebalancing-coherence.md">orphaned rule</a>.
 To work around this limitation, we can introduce a new type that is generic
 over any type <code>T</code> that implement <code>Handler</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub struct Server&lt;T: Handler&gt;(T);
 
@@ -268,13 +289,13 @@ impl&lt;T: Handler&gt; Server&lt;T&gt; {
 impl&lt;T: Handler&gt; Service for Server&lt;T&gt; {
     // unchanged
 }
-
 #}</code></pre></pre>
 <p>We forgot one last thing: <code>Server&lt;T&gt;</code> must not only implement <code>Service</code>, but
 also <code>NewService</code>. In our example, we implemented <code>NewService</code> by cloning the
 service. We can do the same here and clone <code>Server&lt;T&gt;</code>. That means <code>T</code> must be
 clone-able, so we also add a <code>Clone</code> trait bound:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub struct Server&lt;T: Handler + Clone&gt;(T);
 
@@ -298,7 +319,6 @@ impl&lt;T: Handler + Clone&gt; NewService for Server&lt;T&gt; {
         Ok(Server(self.0.clone()))
     }
 }
-
 #}</code></pre></pre>
 <p>Finally, we can spare users the effort of starting a new <code>TcpServer</code> like we did in the example with:</p>
 <pre><pre class="playpen"><code class="language-rust">use std::thread;
@@ -317,7 +337,8 @@ fn main() {
 }
 </code></pre></pre>
 <p>Let's implement a <code>serve()</code> method on <code>Server&lt;T&gt;</code> that consumes it:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use tokio_proto::TcpServer;
 use protocol::Protocol;
@@ -329,7 +350,6 @@ impl&lt;T: Handler + Clone&gt; Server&lt;T&gt; {
         TcpServer::new(Protocol, address).serve(self)
     }
 }
-
 #}</code></pre></pre>
 <p>Not that this is a blocking method. Users will still have to spawn it in a
 separate thread to run it in background.</p>
@@ -349,7 +369,8 @@ it appears that the argument has the following trait bounds:</p>
 <pre><code>NewService + Send + Sync + 'static
 </code></pre>
 <p>Well, let's just add these trait bounds:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub struct Server&lt;T: Handler + Clone + Sync + Send + 'static&gt;(T);
 
@@ -364,12 +385,12 @@ impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; Service for Server&lt;T&g
 impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; NewService for Server&lt;T&gt; {
     // ...
 }
-
 #}</code></pre></pre>
 <p>And this time, it should compile!</p>
 <a class="header" href="ch02-03-02-wrapping-the-server.html#complete-code" id="complete-code"><h1>Complete code</h1></a>
 <a class="header" href="ch02-03-02-wrapping-the-server.html#serverrs" id="serverrs"><h2>server.rs</h2></a>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use std::net::SocketAddr;
 use std::io;
@@ -427,20 +448,19 @@ impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; NewService for Server&lt;
         Ok(Server(self.0.clone()))
     }
 }
-
 #}</code></pre></pre>
 
                 </div>
 
                 <!-- Mobile navigation buttons -->
                 
-                    <a href="ch02-03-01-first-example.html" class="mobile-nav-chapters previous">
+                    <a rel="prev" href="ch02-03-01-first-example.html" class="mobile-nav-chapters previous">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
                 
-                    <a href="ch02-03-03-wrapping-the-client.html" class="mobile-nav-chapters next">
+                    <a rel="next" href="ch02-03-03-wrapping-the-client.html" class="mobile-nav-chapters next">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
@@ -474,6 +494,9 @@ impl&lt;T: Handler + Clone + Sync + Send + 'static&gt; NewService for Server&lt;
 
         
 
+        
+
+        
 
         <script src="highlight.js"></script>
         <script src="book.js"></script>

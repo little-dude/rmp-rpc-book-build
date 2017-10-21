@@ -20,9 +20,20 @@
 
         <link rel="stylesheet" href="highlight.css">
         <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
-        <!-- MathJax -->
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
 
         <!-- Fetch JQuery from CDN but have a local fallback -->
         <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -31,18 +42,25 @@
                 document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
             }
         </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+        <!-- Custom JS script -->
+        
+
     </head>
     <body class="light">
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
-            var theme = localStorage.getItem('theme');
-            if (theme == null) { theme = 'light'; }
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
             $('body').removeClass().addClass(theme);
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script type="text/javascript">
-            var sidebar = localStorage.getItem('sidebar');
+            var sidebar = store.get('mdbook-sidebar');
             if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
             else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
         </script>
@@ -53,7 +71,7 @@
 
         <div id="page-wrapper" class="page-wrapper">
 
-            <div class="page">
+            <div class="page" tabindex="-1">
                 <div id="menu-bar" class="menu-bar">
                     <div class="left-buttons">
                         <i id="sidebar-toggle" class="fa fa-bars"></i>
@@ -63,7 +81,9 @@
                     <h1 class="menu-title"></h1>
 
                     <div class="right-buttons">
-                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -73,7 +93,8 @@
 <a class="header" href="ch03-01-00-reimplementing-the-server.html#re-implementing-the-server" id="re-implementing-the-server"><h1>Re-implementing the server</h1></a>
 <p>We'll start by implementing the server. So let's empty <code>src/server.rs</code>, and
 import everything we'll need:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 use std::io;
 use std::collections::HashMap;
@@ -89,7 +110,6 @@ use tokio_io::codec::Framed;
 
 use codec::Codec;
 use message::{Response, Message};
-
 #}</code></pre></pre>
 <p>When working on this library, I kept looking at Tokio's source code. As a
 result, I ended up doing things in a very similar way: our library with provide
@@ -99,7 +119,8 @@ a <code>Service</code> and a <code>ServiceBuilder</code> traits, similar to Toki
 want build their MessagePack-RPC server. Unlike Tokio's <code>Service</code> trait, it
 will have two methods instead of one: one to handle requests, and one to handle
 notifications.</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub trait Service {
     type Error: Error;
@@ -110,11 +131,11 @@ pub trait Service {
 
     fn handle_notification(&amp;mut self, method: &amp;str, params: &amp;[Value]) -&gt; BoxFuture&lt;(), Self::Error&gt;;
 }
-
 #}</code></pre></pre>
 <p>Note that these method do not take a <code>Message</code> as argument. This is to avoid
 users this kind of code we wrote in the previous example:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 fn call(&amp;self, msg: Message) -&gt; SomeReturnType {
     match msg {
@@ -129,7 +150,6 @@ fn call(&amp;self, msg: Message) -&gt; SomeReturnType {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>Also, notice that <code>Service::handle_request()</code> returns a future that produces a
 <code>Result&lt;T, E&gt;</code> where <code>T</code> and <code>E</code> can be converted into values, instead of a
@@ -137,21 +157,22 @@ fn call(&amp;self, msg: Message) -&gt; SomeReturnType {
 makes the signature nicer.</p>
 <p>For each client, a new <code>Service</code> will be created, so we also a builder trait,
 similar to <code>NewService</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub trait ServiceBuilder {
     type Service: Service + 'static;
 
     fn build(&amp;self) -&gt; Self::Service;
 }
-
 #}</code></pre></pre>
 <p>Finally, for each client a new future will be spawned. This future shall read
 the messages coming from the client, dispatch them to the <code>Service</code>, and
 forward the responses back to the client. This future is not a function but a
 type that implements the <code>Future</code> trait. We'll call it <code>Server</code>. The server
 owns a service instance, and a TCP stream connected to the client.</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 struct Server&lt;S: Service&gt; {
     service: S,
@@ -176,7 +197,6 @@ impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
         //  - send the responses back to the client
     }
 }
-
 #}</code></pre></pre>
 <p>We'll start by turning the <code>TcpStream</code> into <code>Framed&lt;TcpStream, Codec&gt;</code> where
 <code>Codec</code> is the MessagePack-RPC codec we wrote earlier. That will allow us to
@@ -195,7 +215,8 @@ impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
 </code></pre>
 <p>The biggest task is to implement <code>Future</code>. The first thing it has to do is to
 read the incoming messages and dispatch them to the service:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 
 #fn main() {
 impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
@@ -227,14 +248,14 @@ impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
         Ok(Async::NotReady)
     }
 }
-
 #}</code></pre></pre>
 <p>It's important to understand that when spawning a <code>Server</code> instance on a tokio
 event loop, tokio will keep calling <code>poll()</code> as long as it return
 <code>Ok(Async::NotReady)</code>. In other words, the server runs until <code>poll()</code> returns
 an error or <code>Ok(Async::Ready(()))</code>.</p>
 <p>Let's take a closer look at the <code>Server::dispatch_message()</code> method:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
 
@@ -257,13 +278,13 @@ impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>Pretty straightforward except that... we need to keep track of the futures
 returned by <code>handle_request()</code> and <code>handle_notfication()</code> of course. Since
 responses have an ID, it seems natural to use a hashmap and use the ID as a
 key. For the notifications, a vector is enough:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 struct Server&lt;S: Service&gt; {
     service: S,
@@ -302,7 +323,6 @@ impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>It remains to poll the futures returned by our service until they complete.
 Futures returned by <code>handle_request()</code> return a <code>Response</code> that needs to be
@@ -310,7 +330,8 @@ sent back the client. Futures returned by <code>handle_notification()</code> don
 anything, but it's important to poll them as well, to run them to completion.</p>
 <p>We'll create two separate methods to poll these futures:
 <code>Server::process_requests()</code> and <code>Server::process_notifications()</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 
 #fn main() {
 impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
@@ -363,10 +384,10 @@ impl&lt;S&gt; Server&lt;S&gt; where S: Service + 'static {
             let _ = self.request_tasks.remove(idx);
         }
     }
-
 #}</code></pre></pre>
 <p>I think the comments make the code clear enough. Of course we need to call these methods in <code>poll()</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 
 #fn main() {
 impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
@@ -388,7 +409,6 @@ impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
         Ok(Async::NotReady)
     }
 }
-
 #}</code></pre></pre>
 <p>We are almost done, but one subtility remains. If you noticed, when sending the
 response, we use <code>stream.start_send()</code>. The
@@ -403,7 +423,8 @@ with
 We could do this for each message, right after <code>start_send()</code>, but this would
 kind of defeat the purpose of buffering.  Instead, we'll flush after we
 processed all the requests:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
     type Item = ();
@@ -425,12 +446,12 @@ impl&lt;S&gt; Future for Server&lt;S&gt; where S: Service + 'static {
         Ok(Async::NotReady)
     }
 }
-
 #}</code></pre></pre>
 <p>Finally, we could try to make users life easier by providing a function to run
 a server on a Tokio event loop. It's not mandatory, but it will also show how
 the code we just wrote can be used:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 pub fn serve&lt;B: ServiceBuilder&gt;(address: &amp;SocketAddr, service_builder: B) {
     let mut core = Core::new().unwrap();
@@ -443,7 +464,6 @@ pub fn serve&lt;B: ServiceBuilder&gt;(address: &amp;SocketAddr, service_builder:
         Ok(())
     })).unwrap()
 }
-
 #}</code></pre></pre>
 <p>A TCP listener creates a new service for each client that connects, and spawn a
 new <code>Server</code> instance on the event loop. Once the server is spawned, Tokio
@@ -455,13 +475,13 @@ client).</p>
 
                 <!-- Mobile navigation buttons -->
                 
-                    <a href="ch03-00-second-implementation.html" class="mobile-nav-chapters previous">
+                    <a rel="prev" href="ch03-00-second-implementation.html" class="mobile-nav-chapters previous">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
                 
-                    <a href="ch03-01-01-reimplementing-the-server-code.html" class="mobile-nav-chapters next">
+                    <a rel="next" href="ch03-01-01-reimplementing-the-server-code.html" class="mobile-nav-chapters next">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
@@ -495,6 +515,9 @@ client).</p>
 
         
 
+        
+
+        
 
         <script src="highlight.js"></script>
         <script src="book.js"></script>

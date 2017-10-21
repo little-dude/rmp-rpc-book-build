@@ -19,9 +19,20 @@
 
         <link rel="stylesheet" href="highlight.css">
         <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
-        <!-- MathJax -->
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
 
         <!-- Fetch JQuery from CDN but have a local fallback -->
         <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -30,18 +41,25 @@
                 document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
             }
         </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+        <!-- Custom JS script -->
+        
+
     </head>
     <body class="light">
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
-            var theme = localStorage.getItem('theme');
-            if (theme == null) { theme = 'light'; }
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
             $('body').removeClass().addClass(theme);
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script type="text/javascript">
-            var sidebar = localStorage.getItem('sidebar');
+            var sidebar = store.get('mdbook-sidebar');
             if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
             else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
         </script>
@@ -52,7 +70,7 @@
 
         <div id="page-wrapper" class="page-wrapper">
 
-            <div class="page">
+            <div class="page" tabindex="-1">
                 <div id="menu-bar" class="menu-bar">
                     <div class="left-buttons">
                         <i id="sidebar-toggle" class="fa fa-bars"></i>
@@ -62,7 +80,9 @@
                     <h1 class="menu-title"></h1>
 
                     <div class="right-buttons">
-                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -84,13 +104,13 @@ PRs or file issues.</p>
 <p>This guide does not intend to be a substitute to the <a href="https://tokio.rs/docs/getting-started/tokio/">tokio documentation</a>.</p>
 <p>Actually, if you're starting with Tokio, you will probably have to look into
 the official documentation quite often. The intention is to provide a concrete
-example of how to build things with Tokio. The documentation does a great jobs
-at explaining the concepts behind Tokio and introducing the different pieces of
+examples of how to build things with Tokio. The documentation does a great job
+of explaining the concepts behind Tokio and introducing the different pieces of
 the ecosystem. But there are so many concepts to understand, and so many crates
 available that it can be hard at the beginning to know what you really need to
-build something (at least, that was my feeling when I started working on my
+build something (at least, that's how I felt when I started working on my
 <a href="https://github.com/little-dude/rmp-rpc">first crate</a>. By building a real world
-protocol step by step, we aim at gradually putting into application the
+protocol step by step, we aim at gradually applying the
 concepts and crates presented in the official documentation.</p>
 <a class="header" href="ch01-00-introduction.html#who-is-the-target-audience" id="who-is-the-target-audience"><h2>Who is the target audience?</h2></a>
 <p>People who already know the basic concepts of Rust and want to get started with
@@ -98,8 +118,8 @@ Tokio, but don't really know where to start.</p>
 <a class="header" href="ch01-00-introduction.html#disclaimer" id="disclaimer"><h2>Disclaimer</h2></a>
 <p>Two things:</p>
 <ul>
-<li>I am pretty much a beginner with Tokio and this book has not been under any
-review by qualified people yet. It may promote anti-patterns, contain errors,
+<li>I am pretty much a beginner with Tokio and this book has not been
+reviewed by qualified people yet. It may promote anti-patterns, contain errors,
 imprecisions, etc.</li>
 <li>This is work in progress. There are <em>many</em> things I'd like to add: more
 explanations, more detailed examples, TLS support, graceful shutdown for the
@@ -112,7 +132,7 @@ server, etc. etc.</li>
                 
 
                 
-                    <a href="ch01-01-messagepack-rpc.html" class="mobile-nav-chapters next">
+                    <a rel="next" href="ch01-01-messagepack-rpc.html" class="mobile-nav-chapters next">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
@@ -142,6 +162,9 @@ server, etc. etc.</li>
 
         
 
+        
+
+        
 
         <script src="highlight.js"></script>
         <script src="book.js"></script>

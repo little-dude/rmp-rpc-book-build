@@ -20,9 +20,20 @@
 
         <link rel="stylesheet" href="highlight.css">
         <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
-        <!-- MathJax -->
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
 
         <!-- Fetch JQuery from CDN but have a local fallback -->
         <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -31,18 +42,25 @@
                 document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
             }
         </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+        <!-- Custom JS script -->
+        
+
     </head>
     <body class="light">
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
-            var theme = localStorage.getItem('theme');
-            if (theme == null) { theme = 'light'; }
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
             $('body').removeClass().addClass(theme);
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script type="text/javascript">
-            var sidebar = localStorage.getItem('sidebar');
+            var sidebar = store.get('mdbook-sidebar');
             if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
             else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
         </script>
@@ -53,7 +71,7 @@
 
         <div id="page-wrapper" class="page-wrapper">
 
-            <div class="page">
+            <div class="page" tabindex="-1">
                 <div id="menu-bar" class="menu-bar">
                     <div class="left-buttons">
                         <i id="sidebar-toggle" class="fa fa-bars"></i>
@@ -63,7 +81,9 @@
                     <h1 class="menu-title"></h1>
 
                     <div class="right-buttons">
-                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -104,7 +124,8 @@ tokio-io = &quot;0.1&quot;
 <p>Create the files: <code>touch src/{client.rs,codec.rs,errors.rs,message.rs,protocol.rs,server.rs}</code>. And in
 <code>src/lib.rs</code> we'll add the dependencies we'll need for this chapter, and
 declare our modules:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 extern crate bytes;
 extern crate rmpv;
@@ -117,7 +138,6 @@ mod server;
 
 pub mod message;
 pub mod protocol;
-
 #}</code></pre></pre>
 <a class="header" href="ch02-01-00-codec.html#representing-messages" id="representing-messages"><h2>Representing messages</h2></a>
 <p>The first thing to do, if we want to convert a stream of bytes into a stream of
@@ -127,7 +147,8 @@ message.</p>
 specifications</a>
 defines three type of messages: requests, notifications, and responses. Let's
 naively translate this to Rust. In <code>src/message.rs</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/message.rs
 
@@ -158,7 +179,6 @@ pub struct Notification {
     // an array of arbitrary value
     pub params: Vec&lt;???&gt;,
 }
-
 #}</code></pre></pre>
 <p>This can be improved in multiple ways:</p>
 <ul>
@@ -167,7 +187,7 @@ to Rust (hence the <code>???</code>). Fortunately <code>rmpv</code> does have a 
 messagepack values&quot;:
 <a href="https://docs.rs/rmpv/0.4.0/rmpv/enum.Value.html"><code>Value</code></a>.</li>
 <li>The <code>type</code> field seems redundant. The rust type carries the same information
-than the MessagePack-RPC <code>type</code> field. We can get rid of it.</li>
+as the MessagePack-RPC <code>type</code> field. We can get rid of it.</li>
 <li>The <code>Response</code> type could be improved: we have a <code>Result</code> type in Rust, we
 don't need the error field to represent a error. Let's make the <code>result</code>
 field a <code>Result</code>.</li>
@@ -175,7 +195,8 @@ field a <code>Result</code>.</li>
 enum.</li>
 </ul>
 <p>It becomes:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/message.rs
 
@@ -202,7 +223,6 @@ pub enum Message {
     Response(Response),
     Notification(Notification),
 }
-
 #}</code></pre></pre>
 <a class="header" href="ch02-01-00-codec.html#codec-1" id="codec-1"><h2>Codec</h2></a>
 <p>We now need to create a <code>Codec</code>. A codec is a type that implements
@@ -210,7 +230,8 @@ pub enum Message {
 and
 <a href="https://docs.rs/tokio-io/0.1.2/tokio_io/codec/trait.Encoder.html"><code>tokio_io::codec::Encoder</code></a>.</p>
 <p>Here is the skeleton of the code, in <code>src/codec.rs</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/codec.rs
 
@@ -241,7 +262,6 @@ impl Encoder for Codec {
         unimplemented!()
     }
 }
-
 #}</code></pre></pre>
 <a class="header" href="ch02-01-00-codec.html#encoding" id="encoding"><h3>Encoding</h3></a>
 <p>Let's focus on the encoder first. We need to somehow turn a <code>Message</code> into a
@@ -250,7 +270,8 @@ stream of bytes conform to the specs.
 looks promising: it converts a <code>Value</code> into a stream of bytes and write these
 bytes in a writer. All we have to do, is turn our <code>Message</code> into a <code>Value</code>. We
 can implement this directly on <code>Message</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/message.rs
 
@@ -290,10 +311,10 @@ impl Message {
             }
         }
     }
-
 #}</code></pre></pre>
 <p>Our <code>Encoder</code> implementation becomes straightforward:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl Encoder for Codec {
     type Item = Message;
@@ -303,7 +324,6 @@ impl Encoder for Codec {
         Ok(rmpv::encode::write_value(&amp;mut buf.writer(), &amp;msg.as_value())?)
     }
 }
-
 #}</code></pre></pre>
 <a class="header" href="ch02-01-00-codec.html#decoding" id="decoding"><h3>Decoding</h3></a>
 <p>The decoder is slightly more complicated.</p>
@@ -314,7 +334,8 @@ a little bit long, we'll split it in multiple methods: <code>Message::decode</co
 decodes the message type, and then delegates the rest to <code>Request::decode</code>,
 <code>Response::decode</code> and <code>Notification::decode</code>. We'll only show
 <code>Request::decode</code> to keep the snippets small.</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/message.rs
 
@@ -375,10 +396,10 @@ impl Request {
 }
 
 // etc. There is a similar decode() implementation for the Notification and Response types.
-
 #}</code></pre></pre>
 <p>A <em>very</em> naive decoder implementation could be:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl Decoder for Codec {
     type Item = Message;
@@ -389,20 +410,20 @@ impl Decoder for Codec {
         Ok(Message::decode(&amp;mut buf))
     }
 }
-
 #}</code></pre></pre>
-<p>Unfortunately, this won't work. It won't because we have no way to know if
+<p>Unfortunately, this won't work. That's because we have no way to know if
 there are enough bytes to read in the <code>BytesMut</code> buffer to decode a full
 message. When tokio choses to call <code>decode</code>, the buffer may even be empty. And
 given our <code>Message::decode</code> implementation, this will panic.</p>
 <a class="header" href="ch02-01-00-codec.html#adding-error-handling" id="adding-error-handling"><h4>Adding error handling</h4></a>
 <p>If there are not enough bytes to read, we need to let tokio know that we need
-more bytes. Tokio we'll re-call the method later, when there is more to read.
+more bytes. Tokio will re-call the method later, when there is more to read.
 We do so by returning <code>Ok(None)</code>. But how do we know we need more bytes? Error
 handling! <code>Message::decode</code> could return a specific error when it fails to
 decode a message because it's incomplete. We can create a new <code>DecodeError</code>
 error type in <code>src/errors.rs</code>:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/errors.rs
 
@@ -476,10 +497,10 @@ impl From&lt;decode::Error&gt; for DecodeError {
         }
     }
 }
-
 #}</code></pre></pre>
 <p>With error handling, we can clean up our <code>decode</code> methods:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 // src/message.rs
 
@@ -533,11 +554,11 @@ impl Request {
         Ok(Request {id: id, method: method, params: params})
     }
 }
-
 #}</code></pre></pre>
 <a class="header" href="ch02-01-00-codec.html#final-decoder" id="final-decoder"><h4>Final decoder</h4></a>
 <p>The actual <code>Decoder</code> implementation now becomes:</p>
-<pre><pre class="playpen"><code class="language-rust"># #![allow(unused_variables)]
+<pre><pre class="playpen"><code class="language-rust">
+# #![allow(unused_variables)]
 #fn main() {
 impl Decoder for Codec {
     type Item = Message;
@@ -587,17 +608,15 @@ impl Decoder for Codec {
         res
     }
 }
-
 #}</code></pre></pre>
-<p>I hope the comments are detailed enough to understand what happens. To sum up,
-the decoder is called regularly by tokio, each time with three possible
-outcomes:</p>
+<p>To sum up, the decoder is called regularly by tokio, each time with three
+possible outcomes:</p>
 <ul>
 <li>We are able to read a message =&gt; return <code>Ok(message)</code> and remove these bytes
 from the buffer.</li>
-<li>There are not enough byte to read a message =&gt; return <code>Ok(None)</code> to tell
+<li>There are not enough bytes to read a message =&gt; return <code>Ok(None)</code> to tell
 tokio to retry when there is more to read, and leave the buffer intact.</li>
-<li>An error occurs:
+<li>An error occurs if:
 <ul>
 <li>An invalid MessagePack value is read =&gt; try to read the next one</li>
 <li>An unknown io error occurs =&gt; return <code>Err(the_error)</code></li>
@@ -609,13 +628,13 @@ tokio to retry when there is more to read, and leave the buffer intact.</li>
 
                 <!-- Mobile navigation buttons -->
                 
-                    <a href="ch02-00-first-implementation.html" class="mobile-nav-chapters previous">
+                    <a rel="prev" href="ch02-00-first-implementation.html" class="mobile-nav-chapters previous">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
                 
-                    <a href="ch02-01-01-codec-code.html" class="mobile-nav-chapters next">
+                    <a rel="next" href="ch02-01-01-codec-code.html" class="mobile-nav-chapters next">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
@@ -649,6 +668,9 @@ tokio to retry when there is more to read, and leave the buffer intact.</li>
 
         
 
+        
+
+        
 
         <script src="highlight.js"></script>
         <script src="book.js"></script>

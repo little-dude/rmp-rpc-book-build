@@ -20,9 +20,20 @@
 
         <link rel="stylesheet" href="highlight.css">
         <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
 
-        <!-- MathJax -->
-        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <!-- Custom theme -->
+        
+
+        
+
+        <!-- Fetch Clipboard.js from CDN but have a local fallback -->
+        <script src="https://cdn.jsdelivr.net/clipboard.js/1.6.1/clipboard.min.js"></script>
+        <script>
+            if (typeof Clipboard == 'undefined') {
+                document.write(unescape("%3Cscript src='clipboard.min.js'%3E%3C/script%3E"));
+            }
+        </script>
 
         <!-- Fetch JQuery from CDN but have a local fallback -->
         <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
@@ -31,18 +42,25 @@
                 document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
             }
         </script>
+
+        <!-- Fetch store.js from local - TODO add CDN when 2.x.x is available on cdnjs -->
+        <script src="store.js"></script>
+
+        <!-- Custom JS script -->
+        
+
     </head>
     <body class="light">
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script type="text/javascript">
-            var theme = localStorage.getItem('theme');
-            if (theme == null) { theme = 'light'; }
+            var theme = store.get('mdbook-theme');
+            if (theme === null || theme === undefined) { theme = 'light'; }
             $('body').removeClass().addClass(theme);
         </script>
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script type="text/javascript">
-            var sidebar = localStorage.getItem('sidebar');
+            var sidebar = store.get('mdbook-sidebar');
             if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
             else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
         </script>
@@ -53,7 +71,7 @@
 
         <div id="page-wrapper" class="page-wrapper">
 
-            <div class="page">
+            <div class="page" tabindex="-1">
                 <div id="menu-bar" class="menu-bar">
                     <div class="left-buttons">
                         <i id="sidebar-toggle" class="fa fa-bars"></i>
@@ -63,7 +81,9 @@
                     <h1 class="menu-title"></h1>
 
                     <div class="right-buttons">
-                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        <a href="print.html">
+                            <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                        </a>
                     </div>
                 </div>
 
@@ -71,12 +91,11 @@
                     <a class="header" href="ch01-02-tokio.html#tokio" id="tokio"><h1>Tokio</h1></a>
 <p>This chapter gives an overview of the Tokio stack. I'll assume that you
 understand what futures are and how they work. If not, I recommend reading
-<a href="http://asquera.de/blog/2017-03-01/the-future-with-futures/">this excellent blog
-post</a>.</p>
+<a href="http://asquera.de/blog/2017-03-01/the-future-with-futures/">this excellent blog post</a>.</p>
 <p>Disclaimer: Async IO and event loops are complex topics that I don't pretend to
-understand. I just know some basic concepts that I'll try to explain with my
+understand. I just know some basic concepts that I'll try to explain in my
 own words. Here is the thing: you don't need to understand these topics to use
-Tokio, and that what makes it awesome in my opinion.</p>
+Tokio, and that what makes it awesome.</p>
 <a class="header" href="ch01-02-tokio.html#tokio-core" id="tokio-core"><h2>tokio-core</h2></a>
 <p>Let's start with the main piece of Tokio:
 <a href="https://docs.rs/tokio-core/">tokio-core</a>. <code>tokio-core</code> provides two things:</p>
@@ -98,7 +117,7 @@ immediately returns a future that can be polled until it finishes.</p>
 (aka &quot;reactor&quot; or &quot;event loop&quot;) which runs futures. We can already run futures
 with threads (via <a href="https://doc.rust-lang.org/1.6.0/std/thread/fn.spawn.html"><code>std::thread::spawn</code></a> or pools of threads (via
 <a href="https://docs.rs/futures-cpupool"><code>futures_cpupool</code></a>), so why use an
-event loop instead? I'm not entirely sure myself, but here are a few hints:</p>
+event loop instead?</p>
 <ul>
 <li>Threads are expensive when there are many of them, due to context switches.
 You don't want to spawn thousands of threads, especially for IO extensive
@@ -139,13 +158,13 @@ by the <code>Protocol</code>, which passes it to the <code>Codec</code> that sen
 
                 <!-- Mobile navigation buttons -->
                 
-                    <a href="ch01-01-messagepack-rpc.html" class="mobile-nav-chapters previous">
+                    <a rel="prev" href="ch01-01-messagepack-rpc.html" class="mobile-nav-chapters previous">
                         <i class="fa fa-angle-left"></i>
                     </a>
                 
 
                 
-                    <a href="ch02-00-first-implementation.html" class="mobile-nav-chapters next">
+                    <a rel="next" href="ch02-00-first-implementation.html" class="mobile-nav-chapters next">
                         <i class="fa fa-angle-right"></i>
                     </a>
                 
@@ -179,6 +198,9 @@ by the <code>Protocol</code>, which passes it to the <code>Codec</code> that sen
 
         
 
+        
+
+        
 
         <script src="highlight.js"></script>
         <script src="book.js"></script>
